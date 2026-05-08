@@ -30,7 +30,14 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env, render_text_card
+from scripts.lab_utils import (
+    choose_mixed_precision,
+    env_flag,
+    env_int,
+    get_repo_root,
+    load_lab_env,
+    render_text_card,
+)
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -72,6 +79,8 @@ import torch
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
 gpu = torch.cuda.get_device_properties(0)
 print(f"GPU: {gpu.name}  ({gpu.total_memory / 1e9:.1f} GB)")
+USE_BF16, USE_FP16, PRECISION_REASON = choose_mixed_precision()
+print(f"mixed precision: {PRECISION_REASON}")
 
 screenshot_dir = REPO_ROOT / "submission" / "screenshots"
 screenshot_dir.mkdir(parents=True, exist_ok=True)
@@ -179,8 +188,8 @@ sft_config = SFTConfig(
     logging_steps=10,
     save_strategy="no",        # Save only at the end via trainer.model.save_pretrained
     optim="adamw_8bit",
-    bf16=torch.cuda.is_bf16_supported(),
-    fp16=not torch.cuda.is_bf16_supported(),
+    bf16=USE_BF16,
+    fp16=USE_FP16,
     seed=42,
     max_seq_length=MAX_LEN,
     dataset_text_field="text",
