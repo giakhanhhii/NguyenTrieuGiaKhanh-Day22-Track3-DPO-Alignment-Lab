@@ -40,13 +40,15 @@ case "$TIER" in
 esac
 
 # ── 2. Install deps ─────────────────────────────────────────────────────
-# Colab pre-installs torch + transformers; let pip resolve compatible versions.
-# Unsloth's installer picks the right CUDA wheel.
-pip install -q -r requirements.txt
+# Keep Colab setup light: do not force reinstall the preloaded stack unless
+# pip needs to change a package to satisfy our pins.
+pip install -q --upgrade-strategy only-if-needed -r requirements.txt
 
-if [ "$TIER" = "BIGGPU" ]; then
-  echo "[colab] Installing BigGPU extras (vllm, flash-attn) — may take 3-5 min"
-  pip install -q -r requirements-biggpu.txt || echo "[colab] WARNING: vllm/flash-attn install failed; vLLM cell in NB5 will skip"
+if [ "${INSTALL_BIGGPU_EXTRAS:-0}" = "1" ]; then
+  echo "[colab] Installing optional BigGPU extras (vllm, flash-attn)"
+  pip install -q --upgrade-strategy only-if-needed -r requirements-biggpu.txt || echo "[colab] WARNING: vllm/flash-attn install failed; vLLM cell in NB5 will skip"
+else
+  echo "[colab] Skipping optional BigGPU extras. Set INSTALL_BIGGPU_EXTRAS=1 only if you need vLLM serving."
 fi
 
 # ── 3. Convert Jupytext sources ─────────────────────────────────────────
