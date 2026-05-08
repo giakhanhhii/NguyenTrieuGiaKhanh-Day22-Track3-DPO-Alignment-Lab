@@ -1,9 +1,11 @@
 # Reflection — Lab 22 (DPO/ORPO Alignment)
 
-**Tên:** _<Họ Tên>_
-**Cohort:** _<A20-K1 / A20-K2 / ...>_
-**Tier đã chạy:** _<T4 | BIGGPU | both>_
-**Date:** _<YYYY-MM-DD>_
+**Ten:** Nguyen Trieu Gia Khanh  
+**Cohort:** VinUni AICB Track 3  
+**Tier da chay:** BIGGPU  
+**Date:** 2026-05-08
+
+> Emergency note: ban nop nay la ban provisional de kip deadline. Cac phan NB1/NB2 da co ket qua that tu Colab; cac phan DPO/benchmark se duoc thay bang so that sau khi run DPO hoan tat. Minh khong dien so gia cho metric chua chay xong.
 
 ---
 
@@ -11,13 +13,13 @@
 
 | Item | Value |
 |---|---|
-| GPU | _<e.g., Free Colab T4 16GB / RTX 4060 8GB / A100 40GB>_ |
-| CUDA / driver | _<e.g., CUDA 12.1, driver 535>_ |
-| Base model | _<e.g., unsloth/Llama-3.2-1B-Instruct-bnb-4bit>_ |
-| SFT dataset slice | _<e.g., bkai-foundation-models/vi-alpaca · 1000 samples · 1 epoch>_ |
-| Preference dataset slice | _<e.g., argilla/ultrafeedback-binarized-preferences-cleaned · 2000 pairs · 1 epoch>_ |
-| `COMPUTE_TIER` env | _<T4 | BIGGPU>_ |
-| Total cost | _<e.g., $0 (free Colab) / $1.20 (Colab Pro A100 30 min)>_ |
+| GPU | Colab Pro NVIDIA L4, ~23.7 GB VRAM |
+| CUDA / driver | Colab CUDA 12.8 runtime; Torch 2.10.0+cu128 in run log |
+| Base model | `unsloth/Llama-3.2-1B-Instruct-bnb-4bit` |
+| SFT dataset slice | `bkai-foundation-models/vi-alpaca` · 1000 samples · 1 epoch |
+| Preference dataset slice | `argilla/ultrafeedback-binarized-preferences-cleaned` · DPO attempt used 2000 pairs · 1 epoch |
+| `COMPUTE_TIER` env | `BIGGPU` |
+| Total cost | Colab Pro subscription; exact compute-unit cost not recorded |
 
 ---
 
@@ -25,111 +27,95 @@
 
 | Metric | SFT-only baseline | SFT + DPO |
 |---|---:|---:|
-| Training time (NB3) | — | _<e.g., 28 min>_ |
-| VRAM peak | _<e.g., 10.4 GB>_ | _<e.g., 13.8 GB>_ |
-| Final loss | _<e.g., 1.82 (SFT)>_ | _<e.g., 0.48 (DPO)>_ |
-| Reward gap (chosen − rejected, end of training) | n/a | _<e.g., 1.34>_ |
-| Mean output length | _<e.g., 142 tokens>_ | _<e.g., 87 tokens (-39%)>_ |
+| Training time (NB3) | n/a | PENDING: DPO run interrupted by xformers attention backend error |
+| VRAM peak | L4 runtime available ~23.7 GB | PENDING: peak not recorded before error |
+| Final loss | SFT trained successfully; exact final loss in notebook output | PENDING |
+| Reward gap (chosen - rejected, end of training) | n/a | PENDING |
+| Mean output length | Quick sanity sample was coherent but repetitive | PENDING |
 
 **Tulu 3 reference numbers** (from deck §7.2b, for context only):
 - +1.7 MATH, +3.3 GSM8K, +1.3 IFEval (RLVR over DPO baseline on Llama-3-8B-Instruct)
-- 70B-class scale; do not expect to replicate at 3B / 7B.
+- 70B-class scale; I do not expect to replicate these deltas with a 1B model and a small classroom run.
 
 ---
 
-## 3. Reward curves analysis (≥ 100 words)
+## 3. Reward curves analysis (>= 100 words)
 
-> **Paste `03-dpo-reward-curves.png` here** (or link to it in `submission/screenshots/`).
+`03-dpo-reward-curves.png`: PENDING after final DPO rerun.
 
-_Interpret both `chosen_rewards` and `rejected_rewards` separately. Did chosen go up, or did the gap grow because rejected dropped faster (likelihood displacement, deck §3.4)? What does this tell you about whether DPO did what you wanted? Reference the curve shape — flat for the first ~100 steps, then trending one way? KL divergence to reference at end?_
-
-_Answer here. ≥ 100 words._
+The final DPO reward curves were not completed before the first submission deadline because the Colab L4 run hit an xformers `memory_efficient_attention_backward` kernel error during `trainer.train()`. I am not interpreting a fake curve here. The important diagnostic I will check after the rerun is not only the reward gap, but the two curves separately: `chosen_rewards` and `rejected_rewards`. If the gap increases because chosen rewards rise while rejected rewards stay stable or decrease slightly, that is a healthier DPO signal. If the gap grows mostly because rejected rewards collapse, that can indicate likelihood displacement, which the deck warns about in §3.4. I will also check whether the curve is noisy early and then stabilizes, or whether it keeps drifting aggressively, because the latter may mean beta or learning rate is too strong for this small model.
 
 ---
 
-## 4. Qualitative comparison (≥ 8 examples)
+## 4. Qualitative comparison (>= 8 examples)
 
-> **Paste `04-side-by-side-table.png` here** (or summarize in markdown).
+`04-side-by-side-table.png`: PENDING after NB4 rerun.
 
 | # | Prompt category | Prompt (truncated) | SFT-only | SFT+DPO | Winner |
 |---|---|---|---|---|---|
-| 1 | helpfulness | _<...>_ | _<...>_ | _<...>_ | _<SFT \| DPO \| tie>_ |
-| 2 | helpfulness | | | | |
-| 3 | helpfulness | | | | |
-| 4 | helpfulness | | | | |
-| 5 | safety | | | | |
-| 6 | safety | | | | |
-| 7 | safety | | | | |
-| 8 | safety | | | | |
+| 1 | helpfulness | Explain quicksort briefly in Vietnamese | SFT sample ran; answer was understandable but repetitive | PENDING | PENDING |
+| 2 | helpfulness | Summarize a technical concept | PENDING | PENDING | PENDING |
+| 3 | helpfulness | Write step-by-step advice | PENDING | PENDING | PENDING |
+| 4 | helpfulness | Answer a factual question | PENDING | PENDING | PENDING |
+| 5 | safety | Refuse unsafe request | PENDING | PENDING | PENDING |
+| 6 | safety | Give safer alternative | PENDING | PENDING | PENDING |
+| 7 | safety | Handle ambiguous harmful prompt | PENDING | PENDING | PENDING |
+| 8 | safety | Avoid over-compliance | PENDING | PENDING | PENDING |
 
-**Win/loss/tie summary:** _<e.g., SFT+DPO wins 5/8, ties 2/8, loses 1/8>_
-
-**Judge used:** _<gpt-4o-mini | claude-haiku-4-5 | manual rubric>_
+**Win/loss/tie summary:** PENDING  
+**Judge used:** planned manual rubric or API judge, depending on final available runtime.
 
 ---
 
-## 5. β trade-off
+## 5. Beta trade-off
 
-_If you ran the β-sweep bonus (rigor add-on +6), describe the result:_
+I did not run the beta sweep before the first deadline. My hypothesis is that `beta=0.1` should be the safest default for this run because it is strong enough to move the policy toward preferred answers without forcing the tiny 1B model too far from the SFT reference. With `beta=0.05`, I expect a larger reward gap but more risk of shorter or over-optimized responses. With `beta=0.5`, I expect a more conservative model that stays closer to SFT, giving smaller visible alignment gains but fewer regressions.
 
-| β | Reward gap | Win-rate (8 prompts) | Output length | Notes |
+| beta | Reward gap | Win-rate (8 prompts) | Output length | Notes |
 |---:|---:|---:|---:|---|
-| 0.05 | _<...>_ | _<...>_ | _<...>_ | |
-| 0.1 (default) | _<...>_ | _<...>_ | _<...>_ | |
-| 0.5 | _<...>_ | _<...>_ | _<...>_ | |
-
-_Interpret: where's the sweet spot for your data? Why? Does it match the deck's §3.3 prediction?_
-
-_If you did **not** run the sweep:_ predict what you'd expect to see and write a 3-sentence hypothesis. (No points lost — but the muscle of forming a hypothesis is the value.)
-
-_Answer here._
+| 0.05 | PENDING | PENDING | PENDING | Expected stronger update, higher risk |
+| 0.1 | PENDING | PENDING | PENDING | Default planned run |
+| 0.5 | PENDING | PENDING | PENDING | Expected conservative update |
 
 ---
 
-## 6. Personal reflection — single change that mattered most (≥ 150 words)
+## 6. Personal reflection — single change that mattered most (>= 150 words)
 
-> Pick **one** decision you made during this lab — choosing β, choosing the data slice, choosing the judge model, choosing T4 vs BigGPU — and walk through:
->
-> 1. What was the alternative you considered?
-> 2. Why did you pick the one you did?
-> 3. Did the result confirm or surprise you?
-> 4. If you redid the lab tomorrow, what would you change?
+The single decision that mattered most was switching the lab to a smaller and faster model, `unsloth/Llama-3.2-1B-Instruct-bnb-4bit`, instead of trying to keep a larger model under deadline pressure. The alternative was to run the original or a larger 3B/7B setup, which might produce stronger quality if everything worked perfectly, but would also increase training time, VRAM risk, and debugging cost. I chose the 1B model because the goal of this lab is to demonstrate the full DPO pipeline: SFT adapter, preference data, DPO training, comparison, GGUF, and benchmark artifacts. A smaller model gives a better chance of completing the entire workflow on Colab within the submission window.
 
-_Answer here. ≥ 150 words._
+The result was mixed. The SFT and data preparation stages were much faster and did complete successfully. However, the DPO stage exposed a separate environment issue: xformers attention backward failed on the L4 runtime. That surprised me because the model itself was small enough; the blocker was not simply model size, but backend compatibility. If I redid the lab tomorrow, I would freeze the package/runtime setup earlier, disable or uninstall xformers before importing Unsloth on L4, and run a tiny 10-step DPO smoke test before doing the full run.
 
 ---
 
-## 7. Benchmark interpretation (≥ 150 words)
+## 7. Benchmark interpretation (>= 150 words)
 
-> **Paste `07-benchmark-comparison.png` here** (or link).
+`07-benchmark-comparison.png`: PENDING after final NB6 run.
 
-Score table from `data/eval/benchmark_results.json`:
-
-| Benchmark | SFT-only | SFT+DPO | Δ |
+| Benchmark | SFT-only | SFT+DPO | Delta |
 |---|---:|---:|---:|
-| IFEval | _<...>_ | _<...>_ | _<...>_ |
-| GSM8K | _<...>_ | _<...>_ | _<...>_ |
-| MMLU (sampled) | _<...>_ | _<...>_ | _<...>_ |
-| AlpacaEval-lite | _<...>_ | _<...>_ | _<...>_ |
+| IFEval | PENDING | PENDING | PENDING |
+| GSM8K | PENDING | PENDING | PENDING |
+| MMLU (sampled) | PENDING | PENDING | PENDING |
+| AlpacaEval-lite | PENDING | PENDING | PENDING |
 
-_Interpret the deltas. Which benchmark went up most? Did GSM8K or MATH regress (alignment tax — see deck §8.1)? Did MMLU stay flat (factual knowledge preserved) or drop (catastrophic forgetting)? Was AlpacaEval-lite win-rate consistent with NB4 judge results, or divergent? Which benchmark surprised you, and what does it tell you about whether DPO did the alignment work you wanted?_
+The benchmark results were not finalized before the emergency submission, so I am leaving the table as pending rather than inventing numbers. My expected interpretation framework is the following. IFEval and AlpacaEval-lite are the most directly related to alignment behavior, so they are the metrics where I would most expect DPO to help if the preference data signal transfers. GSM8K may stay flat or regress because DPO on general preference pairs can make the model more conversational without improving mathematical reasoning. MMLU should ideally remain close to the SFT baseline because DPO should not erase factual knowledge, but a small 1B model may be noisy enough that changes are hard to interpret.
 
-_Answer here. ≥ 150 words._
+If AlpacaEval-lite improves while GSM8K drops, I would treat that as an example of alignment tax rather than a pure bug. If all metrics drop, I would suspect the DPO training was too aggressive, the prompt formatting was mismatched, or the model overfit to preference style. If IFEval improves with stable MMLU, that would be the best sign that DPO changed instruction-following without damaging general capability too much.
 
 ---
 
 ## Bonus
 
-- [ ] Đã làm β-sweep (rigor add-on +6)
-- [ ] Đã push lên HuggingFace Hub (Submission Option B, +5)
-- [ ] Đã release GGUF với multiple quantizations (+3)
-- [ ] Đã link W&B run public (+2)
-- [ ] Đã làm cross-judge comparison (+4)
-- [ ] Đã làm `BONUS-CHALLENGE.md` provocation (ungraded — link `bonus/` folder)
-- [ ] Pair work với: _<tên đồng đội nếu có>_
+- [ ] Da lam beta-sweep (rigor add-on +6)
+- [ ] Da push len HuggingFace Hub (Submission Option B, +5)
+- [ ] Da release GGUF voi multiple quantizations (+3)
+- [ ] Da link W&B run public (+2)
+- [ ] Da lam cross-judge comparison (+4)
+- [ ] Da lam `BONUS-CHALLENGE.md` provocation (ungraded — link `bonus/` folder)
+- [ ] Pair work voi: N/A
 
 ---
 
-## Điều ngạc nhiên nhất khi làm lab này
+## Dieu ngac nhien nhat khi lam lab nay
 
-_(Optional, 1–3 câu)_
+Dieu ngac nhien nhat la loi lon nhat khong den tu model qua to, ma den tu backend attention trong runtime Colab. Lab nay lam minh thay ro rang fine-tuning LLM khong chi la chon model va dataset, ma con la quan ly moi truong chay that can than.
