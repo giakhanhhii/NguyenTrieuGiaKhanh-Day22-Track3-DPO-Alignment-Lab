@@ -75,10 +75,10 @@ Evidence: `submission/screenshots/04-side-by-side-table.png` and `submission/scr
 | 7 | safety | Over-compliance test | See screenshot | See screenshot | See judge output |
 | 8 | safety | Policy-sensitive prompt | See screenshot | See screenshot | See judge output |
 
-**Win/loss/tie summary:** recorded in `data/eval/judge_results.json` and summarized visually in `05-judge-output.png`.  
+**Win/loss/tie summary:** `DPO wins = 0`, `SFT wins = 0`, `ties = 8`, `unknown = 0`, recorded in `data/eval/judge_results.json` and summarized visually in `05-judge-output.png`.  
 **Judge used:** judge/manual rubric artifact saved as `05-judge-output.png`.
 
-The qualitative comparison is important because DPO can improve a scalar preference objective while still changing style in ways that are not always beneficial. In my side-by-side table, I used a mix of helpfulness and safety prompts so that the comparison was not only about fluency. I looked for whether the DPO model followed the request more directly, avoided unnecessary repetition, and handled safety prompts with a better refusal or safer alternative. The SFT model was already able to answer in Vietnamese, but the SFT sanity sample showed some repetition. Therefore, one of my key qualitative checks was whether DPO reduced that over-generation tendency while preserving usefulness.
+The qualitative comparison is important because DPO can improve a scalar preference objective while still changing style in ways that are not always beneficial. In my side-by-side table, I used a mix of helpfulness and safety prompts so that the comparison was not only about fluency. The judge/manual summary produced ties on all 8 prompts, so my interpretation is conservative: on this small fixed prompt set, the DPO adapter did not clearly dominate the SFT-only adapter, but it also did not show an obvious qualitative collapse. I looked for whether the DPO model followed the request more directly, avoided unnecessary repetition, and handled safety prompts with a better refusal or safer alternative. The SFT model was already able to answer in Vietnamese, but the SFT sanity sample showed some repetition. Therefore, one of my key qualitative checks was whether DPO reduced that over-generation tendency while preserving usefulness.
 
 ---
 
@@ -112,14 +112,14 @@ Score table from `data/eval/benchmark_results.json`:
 
 | Benchmark | SFT-only | SFT+DPO | Δ |
 |---|---:|---:|---:|
-| IFEval | Pending / not produced | Pending / not produced | Pending |
-| GSM8K | Pending / not produced | Pending / not produced | Pending |
-| MMLU (sampled) | Pending / not produced | Pending / not produced | Pending |
-| AlpacaEval-lite | Pending / not produced | Pending / not produced | Pending |
+| IFEval | 0.50 | 0.50 | +0.000 |
+| GSM8K | 0.00 | n/a | n/a |
+| MMLU (sampled) | n/a | n/a | n/a |
+| AlpacaEval-lite | 0.50 | 0.50 | +0.000 |
 
-The final NB6 benchmark artifact was submitted as a pending comparison because `benchmark_results.json` was not produced in the available Colab run. I am not inventing benchmark numbers here. The meaningful interpretation is therefore about what I would expect to see and how I would read the results once the benchmark run completes. IFEval and AlpacaEval-lite are the two suites most directly connected to instruction-following and preference alignment, so those are the metrics where I would expect DPO to help most if the preference data transferred well. GSM8K and MMLU measure reasoning and factual knowledge more than preference-following, so they may stay flat or even regress slightly after DPO.
+The final NB6 artifact is a mini benchmark rather than the full benchmark sweep, because the Colab run hit Hugging Face 500 server errors while fetching/running parts of GSM8K and MMLU. IFEval completed for both SFT-only and SFT+DPO with the same score, 0.50 versus 0.50, so the mini run does not show a measurable instruction-following gain on that tiny sample. AlpacaEval-lite was computed from the available judge results and also ended in a tie, 0.50 versus 0.50, matching the qualitative judge summary where all 8 comparisons were ties. GSM8K produced a valid SFT-only score of 0.00, but the DPO side failed due to the external Hugging Face server error, so I do not interpret that delta. MMLU also did not produce a valid score in this run for the same infrastructure reason.
 
-That possible regression is the “alignment tax” discussed in deck §8.1. A model can become better aligned to helpfulness or safety preferences while losing some performance on exact reasoning tasks, especially when the model is small and the DPO data is general English UltraFeedback rather than domain-specific Vietnamese reasoning data. If AlpacaEval-lite or IFEval improves but GSM8K drops, I would not automatically call the run a failure; I would interpret it as DPO changing behavior toward preference-following. If all benchmarks drop, then I would suspect over-optimization, formatting mismatch, or too aggressive preference training. The next step would be to rerun NB6 after stabilizing the environment and replace the pending benchmark plot with real deltas.
+The main interpretation is conservative: on the available mini benchmark, DPO did not clearly outperform SFT, but it also did not show a clear regression on the metrics that completed. This is plausible for a small Llama-3.2-1B model trained for a short lab run on a small preference slice. Deck §8.1 warns about alignment tax, especially on reasoning and knowledge benchmarks like GSM8K and MMLU, but my run cannot strongly confirm or reject that effect because those tasks were interrupted by Hugging Face backend failures. If I rerun this with stable dataset access, I would prioritize a larger sample for IFEval and AlpacaEval-lite first, because those are closest to preference alignment, then rerun GSM8K/MMLU to check whether DPO preserved reasoning and factual performance.
 
 ---
 
