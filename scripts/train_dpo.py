@@ -47,7 +47,12 @@ def main():
     print(f"Beta / LR:  {args.beta} / {args.lr}")
     print(f"Output:     {output}")
 
-    from scripts.lab_utils import choose_mixed_precision, configure_attention_backend, ensure_chat_template
+    from scripts.lab_utils import (
+        choose_gradient_checkpointing,
+        choose_mixed_precision,
+        configure_attention_backend,
+        ensure_chat_template,
+    )
     import torch
     from datasets import Dataset
     from peft import PeftModel
@@ -56,9 +61,11 @@ def main():
 
     attn_impl, attn_reason = configure_attention_backend()
     use_bf16, use_fp16, precision_reason = choose_mixed_precision()
+    gradient_checkpointing = choose_gradient_checkpointing()
     model_dtype = torch.float16 if use_fp16 else torch.bfloat16 if use_bf16 else None
     print(f"Precision:  {precision_reason}")
     print(f"Attention:  {attn_reason}")
+    print(f"Checkpoint: {gradient_checkpointing}")
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=base_model,
@@ -76,7 +83,7 @@ def main():
         model, r=16, lora_alpha=32, lora_dropout=0.0, bias="none",
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
                         "gate_proj", "up_proj", "down_proj"],
-        use_gradient_checkpointing="unsloth",
+        use_gradient_checkpointing=gradient_checkpointing,
         random_state=42, use_rslora=False, loftq_config=None,
     )
 

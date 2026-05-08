@@ -81,22 +81,36 @@ def configure_attention_backend() -> tuple[str | None, str]:
     import torch
 
     if env_flag("FORCE_SDPA_ATTENTION", False):
-        os.environ.setdefault("XFORMERS_DISABLED", "1")
-        os.environ.setdefault("DISABLE_XFORMERS", "1")
-        os.environ.setdefault("UNSLOTH_DISABLE_XFORMERS", "1")
-        return "sdpa", "sdpa forced by FORCE_SDPA_ATTENTION"
+        os.environ["XFORMERS_DISABLED"] = "1"
+        os.environ["DISABLE_XFORMERS"] = "1"
+        os.environ["UNSLOTH_DISABLE_XFORMERS"] = "1"
+        return "eager", "eager attention forced by FORCE_SDPA_ATTENTION"
 
     if not torch.cuda.is_available():
         return None, "default attention backend (no CUDA)"
 
     gpu_name = torch.cuda.get_device_name(0).upper()
     if "L4" in gpu_name:
-        os.environ.setdefault("XFORMERS_DISABLED", "1")
-        os.environ.setdefault("DISABLE_XFORMERS", "1")
-        os.environ.setdefault("UNSLOTH_DISABLE_XFORMERS", "1")
-        return "sdpa", "sdpa on L4 with xformers disabled for DPO stability"
+        os.environ["XFORMERS_DISABLED"] = "1"
+        os.environ["DISABLE_XFORMERS"] = "1"
+        os.environ["UNSLOTH_DISABLE_XFORMERS"] = "1"
+        return "eager", "eager attention on L4 to avoid xformers DPO backward failures"
 
     return None, f"default attention backend on {gpu_name}"
+
+
+def choose_gradient_checkpointing() -> str | bool:
+    """Avoid Unsloth's checkpointing path on L4 where xformers can still be selected."""
+    import torch
+
+    if env_flag("FORCE_UNSLOTH_CHECKPOINTING", False):
+        return "unsloth"
+    if not torch.cuda.is_available():
+        return "unsloth"
+    gpu_name = torch.cuda.get_device_name(0).upper()
+    if "L4" in gpu_name:
+        return False
+    return "unsloth"
 
 
 LLAMA3_CHAT_TEMPLATE = """{% for message in messages %}{% if loop.index0 == 0 %}{{ bos_token }}{% endif %}{{ '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n' + (message['content'] | trim) + '<|eot_id|>' }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"""
