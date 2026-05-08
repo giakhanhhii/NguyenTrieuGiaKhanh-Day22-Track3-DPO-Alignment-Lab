@@ -94,7 +94,7 @@ print(f"Saved setup screenshot to {screenshot_dir / '01-setup-gpu.png'}")
 # %% [markdown]
 # ## 1. Load base model with Unsloth
 #
-# Unsloth bundles patched 4-bit kernels — that's how Qwen2.5-3B (or 7B) stays
+# Unsloth bundles patched 4-bit kernels — that's how these compact 4-bit base models stay
 # in T4 / A100 budget. The `FastLanguageModel.from_pretrained` call returns a
 # 4-bit quantized base; `get_peft_model` attaches the LoRA adapter on top.
 

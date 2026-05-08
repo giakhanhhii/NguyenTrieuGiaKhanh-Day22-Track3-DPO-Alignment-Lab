@@ -284,6 +284,6 @@ print("Saved data/eval/deploy_meta.json")
 #
 # > **The deck says:** "DPO + 30 min A100 + 2k UltraFeedback → 3.2 → 4.1 helpfulness."
 # > **You measured:** _<your win-rate from NB4>_.
-# > **Why might they differ?** Dataset (English vs VN), base model (Qwen2.5-3B vs
+# > **Why might they differ?** Dataset (English vs VN), base model (Llama-3.2-1B vs
 # > deck's unspecified base), judge bias, sample size (8 prompts vs deck's full eval).
 # > Đó chính là § 6 trong REFLECTION — what 1 change would close the gap.
