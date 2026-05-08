@@ -10,8 +10,8 @@ DPO = policy (trainable) + reference (frozen) + activations + KV cache + optimiz
 
 | Base model | Mode | Policy | Reference | Activations | Optim | Total VRAM | Where it fits |
 |---|---|---:|---:|---:|---:|---:|---|
-| Qwen2.5-1.5B | LoRA + 4bit | 1.0 GB | 1.0 GB | 2 GB | 1 GB | **~5 GB** | Any laptop GPU, free Colab T4 |
-| Qwen2.5-3B | LoRA + 4bit | 2.0 GB | 2.0 GB | 4 GB | 1.5 GB | **~10 GB** | RTX 3060 12GB, free Colab T4 (16GB) ✓ |
+| Llama-3.2-1B | LoRA + 4bit | 0.8 GB | 0.8 GB | 1.5 GB | 0.8 GB | **~4 GB** | Any laptop GPU, free Colab T4 |
+| Qwen2.5-3B *(manual override)* | LoRA + 4bit | 2.0 GB | 2.0 GB | 4 GB | 1.5 GB | **~10 GB** | RTX 3060 12GB, free Colab T4 (16GB) ✓ |
 | Qwen2.5-7B | LoRA + 4bit | 4.5 GB | 4.5 GB | 6 GB | 3 GB | **~18 GB** | A100 40GB, L4 24GB, RTX 3090/4090 |
 | Qwen2.5-14B | LoRA + 4bit | 9 GB | 9 GB | 8 GB | 4 GB | **~30 GB** | A100 40GB ✓, H100 |
 
@@ -38,7 +38,7 @@ Do you have a usable NVIDIA GPU?
 ├─ Yes, ≥ 24 GB VRAM (3090/4090/A100/L4)
 │   └─ COMPUTE_TIER=BIGGPU → Qwen2.5-7B faithful path, deck-aligned numbers
 └─ Yes, 12-23 GB VRAM (3060/3070/4060/3080)
-    └─ COMPUTE_TIER=T4 → Qwen2.5-3B, runs comfortably with margin
+    └─ COMPUTE_TIER=T4 → Llama-3.2-1B, lowest-risk path on free Colab
 ```
 
 If `make smoke` OOMs on your tier, the next move is:
@@ -46,14 +46,14 @@ If `make smoke` OOMs on your tier, the next move is:
 1. Reduce `max_length` (512 → 384 → 256)
 2. Reduce `per_device_train_batch_size` (already 1 — can't go lower)
 3. Increase `gradient_accumulation_steps` (8 → 16 → 32) — slower but same effective batch
-4. Drop a tier (BigGPU 7B → T4 3B)
+4. Drop a tier (BigGPU 7B → T4 1B)
 
 ## 4. Disk space
 
-- Model weights: 2 GB (3B) or 5 GB (7B) — auto-downloaded by Unsloth
+- Model weights: ~1 GB (1B) or 5 GB (7B) — auto-downloaded by Unsloth
 - HF cache: ~10 GB total during a run (model + tokenizer + dataset)
 - Adapters: ~50 MB each (sft-mini + dpo + optional orpo)
-- GGUF Q4_K_M output: 1.5 GB (3B) or 4 GB (7B)
+- GGUF Q4_K_M output: ~1 GB (1B) or 4 GB (7B)
 - **Plan for 25 GB free** before starting. Colab gives 100 GB so this is only a concern locally.
 
 ## 5. Network

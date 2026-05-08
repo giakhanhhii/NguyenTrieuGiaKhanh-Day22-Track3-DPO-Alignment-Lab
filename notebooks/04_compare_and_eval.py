@@ -150,7 +150,7 @@ dpo_outputs = generate_with_adapter(
 print(f"Done — {len(dpo_outputs)} responses")
 
 # %% [markdown]
-# ## 4. Side-by-side table (deliverable: `04_side_by_side_table.png`)
+# ## 4. Side-by-side table (deliverable: `04-side-by-side-table.png`)
 
 # %%
 import pandas as pd

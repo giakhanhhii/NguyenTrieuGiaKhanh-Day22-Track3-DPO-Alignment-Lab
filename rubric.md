@@ -10,17 +10,17 @@ Submit screenshots + notebook output for each criterion. See [`submission/screen
 | # | Notebook | Criterion | Pts |
 |---|---|---|---:|
 | 1 | `01_sft_mini` | `adapters/sft-mini/adapter_config.json` exists with `lora_alpha: 32, r: 16` | 5 |
-| 1 | `01_sft_mini` | SFT loss curve (`02_sft_loss.png`) shows monotonic decrease over 1 epoch | 5 |
+| 1 | `01_sft_mini` | SFT loss curve (`02-sft-loss.png`) shows monotonic decrease over 1 epoch | 5 |
 | 1 | `01_sft_mini` | At least 1 sample generation from SFT model printed in NB1 (sanity check) | 5 |
 | 2 | `02_preference_data` | `data/pref/train.parquet` written with `prompt / chosen / rejected` columns | 5 |
 | 2 | `02_preference_data` | 3 inspected examples printed in NB2 with token counts; chosen ≠ rejected on each | 5 |
 | 3 | `03_dpo_train` | `adapters/dpo/adapter_config.json` exists, distinct from sft-mini | 5 |
-| 3 | `03_dpo_train` | Reward gap plot (`03_dpo_reward_curves.png`) shows `chosen - rejected` increasing | 10 |
+| 3 | `03_dpo_train` | Reward gap plot (`03-dpo-reward-curves.png`) shows `chosen - rejected` increasing | 10 |
 | 3 | `03_dpo_train` | Both `chosen_rewards` and `rejected_rewards` curves plotted separately + interpreted in REFLECTION | 10 |
-| 4 | `04_compare_and_eval` | `04_side_by_side_table.png` with ≥ 8 prompts × 2 model outputs (SFT, SFT+DPO) | 5 |
+| 4 | `04_compare_and_eval` | `04-side-by-side-table.png` with ≥ 8 prompts × 2 model outputs (SFT, SFT+DPO) | 5 |
 | 4 | `04_compare_and_eval` | Win/loss/tie summary reported (manual or judge); 4 helpfulness + 4 safety mix | 5 |
 | 5 | `05_merge_deploy_gguf` | `gguf/lab22-dpo-Q4_K_M.gguf` exists, file size < 5 GB | 5 |
-| 5 | `05_merge_deploy_gguf` | llama.cpp smoke screenshot (`06_gguf_smoke.png`) shows coherent VN output | 5 |
+| 5 | `05_merge_deploy_gguf` | llama.cpp smoke screenshot (`06-gguf-smoke.png`) shows coherent VN output | 5 |
 | 6 | `06_benchmark` | `data/eval/benchmark_results.json` exists with 4 benchmarks × {sft, dpo} scores | 5 |
 | 6 | `06_benchmark` | `07-benchmark-comparison.png` 4-bar chart with deltas annotated | 5 |
 | — | All notebooks | Reproducible from clean `setup-laptop.sh` + `make pipeline` (or Colab Run-all) | 5 |
@@ -56,7 +56,7 @@ See [`BONUS-CHALLENGE.md`](BONUS-CHALLENGE.md) — completely separate, no point
 
 ### Option A — Lightweight (default)
 - GitHub repo (public) with executed notebooks (output cells preserved)
-- `submission/screenshots/` (≥ 6 PNG/JPG)
+- `submission/screenshots/` (≥ 7 PNG/JPG)
 - `submission/REFLECTION.md` (6 sections, ≥ 150 words on §3 + §6)
 - `make verify` passes
 
@@ -77,8 +77,8 @@ See [`BONUS-CHALLENGE.md`](BONUS-CHALLENGE.md) — completely separate, no point
 
 1. Push your work to `<your-username>/Day22-Track3-DPO-Alignment-Lab` (forked or fresh repo — both fine), set repo **public**.
 2. Include:
-   - 5 executed notebooks (`.ipynb` with output cells preserved) OR a single executed `colab/Lab22_DPO_T4.ipynb` if you used the Colab path
-   - `submission/screenshots/` — 6 required + 3 optional images
+   - 6 executed notebooks (`.ipynb` with output cells preserved) OR a single executed `colab/Lab22_DPO_T4.ipynb` if you used the Colab path
+   - `submission/screenshots/` — 7 required + 3 optional images
    - `submission/REFLECTION.md` — all 6 sections filled, your own numbers
    - **Optional:** `bonus/` folder for the ungraded creative challenge
 3. Run `make verify` locally — it will list missing artifacts, exit non-zero until you fix them.

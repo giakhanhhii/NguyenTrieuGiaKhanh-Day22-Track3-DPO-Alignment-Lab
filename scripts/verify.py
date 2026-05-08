@@ -48,6 +48,15 @@ def check_screenshots(folder: Path, min_count: int, problems: list[str]) -> int:
     return len(images)
 
 
+def check_any_file(paths: list[Path], label: str, problems: list[str]) -> bool:
+    existing = [path for path in paths if path.exists() and path.stat().st_size > 0]
+    if existing:
+        return True
+    joined = " | ".join(str(path.relative_to(Path.cwd())) for path in paths)
+    problems.append(f"MISSING  {label}: {joined}")
+    return False
+
+
 def check_reflection_edited(path: Path, problems: list[str]) -> bool:
     if not path.exists():
         problems.append("MISSING  submission/REFLECTION.md")
@@ -209,6 +218,20 @@ def main() -> int:
 
     # GGUF
     check_gguf(repo, problems)
+    check_file(repo / "submission" / "screenshots" / "03-dpo-reward-curves.png",
+               "reward curves screenshot (NB3 output)", problems)
+    check_file(repo / "submission" / "screenshots" / "04-side-by-side-table.png",
+               "side-by-side table screenshot (NB4 output)", problems)
+    check_any_file(
+        [
+            repo / "submission" / "screenshots" / "05-judge-output.png",
+            repo / "submission" / "screenshots" / "05-manual-rubric.png",
+        ],
+        "judge summary screenshot (NB4 output)",
+        problems,
+    )
+    check_file(repo / "submission" / "screenshots" / "06-gguf-smoke.png",
+               "GGUF smoke screenshot (NB5 output)", problems)
 
     # NB6 benchmark outputs
     check_file(repo / "data" / "eval" / "benchmark_results.json",
@@ -218,7 +241,7 @@ def main() -> int:
 
     # Submission artifacts
     check_reflection_edited(repo / "submission" / "REFLECTION.md", problems)
-    n_shots = check_screenshots(repo / "submission" / "screenshots", min_count=6, problems=problems)
+    n_shots = check_screenshots(repo / "submission" / "screenshots", min_count=7, problems=problems)
     if n_shots:
         print(f"  ✓ submission/screenshots/ has {n_shots} image(s)")
 

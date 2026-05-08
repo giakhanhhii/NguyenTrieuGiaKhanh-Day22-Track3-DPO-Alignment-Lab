@@ -39,7 +39,7 @@ smoke: ## 2-step training run on each notebook to verify imports + GPU
 	@$(PY) scripts/verify.py --smoke
 
 # ─────────────────────────────────────────────────────────────
-# Pipeline — 5 notebooks in order
+# Pipeline — 6 notebooks in order
 # ─────────────────────────────────────────────────────────────
 
 sft: ## NB1 — build SFT-mini checkpoint (~10 min T4 / ~5 min A100)

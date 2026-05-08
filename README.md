@@ -115,9 +115,9 @@ Mapping 1-to-1 với slide deliverable bullets:
 
 1. **NB1** — `adapters/sft-mini/` written; `01_sft_loss.png` shows monotonic decrease.
 2. **NB2** — `data/pref/train.parquet` with prompt/chosen/rejected columns; 3 inspected examples printed.
-3. **NB3** — `adapters/dpo/` written; reward gap plot saved as `03_dpo_reward_curves.png`.
-4. **NB4** — `04_side_by_side_table.png` + win/loss/tie summary (8 prompts × 2 models).
-5. **NB5** — `gguf/lab22-dpo-Q4_K_M.gguf` exists; `06_gguf_smoke.png` shows llama.cpp output.
+3. **NB3** — `adapters/dpo/` written; reward gap plot saved as `03-dpo-reward-curves.png`.
+4. **NB4** — `04-side-by-side-table.png` + win/loss/tie summary (8 prompts × 2 models).
+5. **NB5** — `gguf/lab22-dpo-Q4_K_M.gguf` exists; `06-gguf-smoke.png` shows llama.cpp output.
 6. **NB6** — `data/eval/benchmark_results.json` + `07-benchmark-comparison.png` 4-bar chart with deltas annotated; REFLECTION §7 interprets alignment-tax pattern (deck §8.1).
 
 Chấm điểm: xem [`rubric.md`](rubric.md). **Tổng 100 pts → Track-3 Daily Lab (30%)** + 20 pts bonus rigor add-ons (β-sweep, HF push, W&B, GGUF release).
@@ -128,7 +128,7 @@ Chấm điểm: xem [`rubric.md`](rubric.md). **Tổng 100 pts → Track-3 Daily
 
 | Layer | Tool | Version | Why |
 |---|---|---|---|
-| **Training** | Unsloth | ≥ 2025.10 | Patched kernels, stable 4-bit Qwen2.5 finetuning on Colab, matches Day 21 reference |
+| **Training** | Unsloth | ≥ 2025.10 | Patched kernels, stable 4-bit Llama/Qwen finetuning on Colab, matches Day 21 reference |
 | **Trainers** | TRL | ≥ 0.12, < 0.20 | `DPOTrainer` + `DPOConfig` (deck §5.2 surface) |
 | **Adapters** | PEFT | ≥ 0.13 | LoRA r=16 α=32; reference model loaded as frozen 4-bit |
 | **Quantization** | bitsandbytes | ≥ 0.44 | NF4 base + bf16 LoRA |
@@ -210,7 +210,7 @@ Full provocations: [`BONUS-CHALLENGE.md`](BONUS-CHALLENGE.md) (tiếng Việt) �
 ├── adapters/                       # gitignored; SFT + DPO outputs
 ├── submission/
 │   ├── REFLECTION.md               # personal report template (6 sections)
-│   └── screenshots/                # add 6 required + 3 optional screenshots
+│   └── screenshots/                # add 7 required + 3 optional screenshots
 └── solutions/                      # released after submission deadline
     └── README.md
 ```
@@ -221,7 +221,7 @@ Full provocations: [`BONUS-CHALLENGE.md`](BONUS-CHALLENGE.md) (tiếng Việt) �
 
 | Triệu chứng | Fix |
 |---|---|
-| OOM ngay khi load model | Đang dùng tier sai. T4 → `Qwen2.5-3B`; nếu vẫn OOM, restart runtime + downgrade `unsloth` 1 minor |
+| OOM ngay khi load model | Đang dùng tier sai. T4 mặc định → `Llama-3.2-1B-Instruct-bnb-4bit`; nếu vẫn OOM, restart runtime + giảm `max_length` |
 | `chosen_rewards` không tăng | Bình thường ở 100 step đầu. Sau 500 step nếu vẫn flat → giảm `beta` 0.1 → 0.05 hoặc tăng `lr` 5e-7 → 1e-6 |
 | `chosen_rewards` *giảm* mà reward gap *tăng* | Đó là **likelihood displacement** (deck §3.4). Bình thường ở DPO; ghi vào REFLECTION § "β trade-off" |
 | `RuntimeError: padding token is not set` | Add `tokenizer.pad_token = tokenizer.eos_token` trước khi tạo trainer |
@@ -245,8 +245,8 @@ Full provocations: [`BONUS-CHALLENGE.md`](BONUS-CHALLENGE.md) (tiếng Việt) �
    git init -b main
    git remote add origin https://github.com/<your-username>/Day22-Track3-DPO-Alignment-Lab.git
    ```
-2. Hoàn thành 5 notebooks (giữ output cells trong `.ipynb`).
-3. Add ảnh chụp vào `submission/screenshots/` (xem [`submission/screenshots/README.md`](submission/screenshots/README.md) để biết list 6+3).
+2. Hoàn thành 6 notebooks (giữ output cells trong `.ipynb`).
+3. Add ảnh chụp vào `submission/screenshots/` (xem [`submission/screenshots/README.md`](submission/screenshots/README.md) để biết list 7+3).
 4. Điền [`submission/REFLECTION.md`](submission/REFLECTION.md) (6 sections, ≥150 từ §3 + §6).
 5. `make verify` — pre-submission gatekeeper. Nếu fail, fix và rerun.
 6. Push lên public repo:
