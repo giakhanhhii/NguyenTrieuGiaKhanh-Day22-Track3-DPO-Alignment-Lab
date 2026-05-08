@@ -43,6 +43,7 @@ esac
 # Keep Colab setup light: do not force reinstall the preloaded stack unless
 # pip needs to change a package to satisfy our pins.
 pip install -q --upgrade-strategy only-if-needed -r requirements.txt
+pip uninstall -y xformers || true
 
 if [ "${INSTALL_BIGGPU_EXTRAS:-0}" = "1" ]; then
   echo "[colab] Installing optional BigGPU extras (vllm, flash-attn)"
