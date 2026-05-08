@@ -33,7 +33,7 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env
+from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env, package_submission_artifacts
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -61,6 +61,7 @@ EVAL_OUT.mkdir(parents=True, exist_ok=True)
 
 assert SFT_PATH.exists(), "NB1 must run first"
 assert DPO_PATH.exists(), "NB3 must run first"
+assert MERGED_PATH.exists(), "NB5 must run first and produce adapters/merged-fp16"
 
 print(f"COMPUTE_TIER:    {COMPUTE_TIER}")
 print(f"IFEval:          {LIMIT_IFEVAL} prompts")
@@ -85,7 +86,7 @@ def run_lm_eval(adapter_path, tasks, limit, num_fewshot, label):
     """Run lm-eval-harness with PEFT adapter on top of base, return parsed metrics."""
     base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
     out_dir = EVAL_OUT / f"lm-{label}-{tasks}"
-    if label == "dpo" and MERGED_PATH.exists():
+    if label == "dpo":
         model_args = f"pretrained={MERGED_PATH},load_in_4bit=True"
     else:
         model_args = f"pretrained={base},peft={adapter_path},load_in_4bit=True"
@@ -202,7 +203,7 @@ def generate_with_adapter(adapter_path, prompts, max_new_tokens=256):
     base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
     max_len = 512 if COMPUTE_TIER == "T4" else 1024
 
-    if Path(adapter_path).resolve() == DPO_PATH.resolve() and MERGED_PATH.exists():
+    if Path(adapter_path).resolve() == DPO_PATH.resolve():
         model_name = str(MERGED_PATH)
         load_in_4bit = True
     else:
@@ -214,8 +215,6 @@ def generate_with_adapter(adapter_path, prompts, max_new_tokens=256):
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    if Path(adapter_path).resolve() == DPO_PATH.resolve() and not MERGED_PATH.exists():
-        model = PeftModel.from_pretrained(model, str(SFT_PATH))
     if model_name == base:
         model = PeftModel.from_pretrained(model, str(adapter_path))
     FastLanguageModel.for_inference(model)
@@ -461,3 +460,18 @@ print(f"\nSaved {EVAL_OUT / 'benchmark_results.json'}")
 # ---
 #
 # **Bạn vừa hoàn thành full Lab 22 pipeline.** Run `make verify` để check submission readiness.
+
+# %% [markdown]
+# ## 9. Optional — package screenshots + reflection for download
+#
+# This creates a single zip with `submission/screenshots/`, `submission/REFLECTION.md`,
+# and any JSONs already written under `data/eval/`.
+
+# %%
+zip_path = package_submission_artifacts(REPO_ROOT)
+print(f"Packaged submission artifacts at: {zip_path}")
+try:
+    from google.colab import files
+    files.download(str(zip_path))
+except Exception:
+    print("Not running inside Colab download context — zip created on disk only.")

@@ -27,7 +27,6 @@ wandb/
 # HuggingFace cache (Colab + local — model weights are huge)
 .cache/
 hf_cache/
-.colab/
 
 # Env / secrets
 .env
