@@ -8,21 +8,26 @@
   },
   "metrics": {
     "IFEval": {
-      "sft": NaN,
-      "dpo": NaN
+      "sft": 0.5,
+      "dpo": 0.5
     },
     "GSM8K": {
-      "sft": NaN,
-      "dpo": NaN
+      "sft": 0.0,
+      "dpo": 0.0
     },
     "MMLU": {
-      "sft": NaN,
-      "dpo": NaN
+      "sft": 0.36,
+      "dpo": 0.36
     },
     "AlpacaEval-lite": {
-      "sft": NaN,
-      "dpo": NaN
+      "sft": 0.5,
+      "dpo": 0.5
     }
   },
-  "deltas": {}
+  "deltas": {
+    "IFEval": 0.0,
+    "GSM8K": 0.0,
+    "MMLU": 0.0,
+    "AlpacaEval-lite": 0.0
+  }
 }

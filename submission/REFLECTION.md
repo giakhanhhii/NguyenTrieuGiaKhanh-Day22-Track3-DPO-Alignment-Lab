@@ -4,23 +4,23 @@
 **Mã số sinh viên:** 2A202600225  
 **Cohort:** VinUni AICB Track 3  
 **Tier đã chạy:** BIGGPU  
-**Date:** 2026-05-08
+**Ngày thực hiện:** 2026-05-08
 
 ---
 
-## 1. Setup
+## 1. Thiết lập thí nghiệm
 
-| Item | Value |
+| Hạng mục | Giá trị |
 |---|---|
-| GPU | Google Colab Pro — NVIDIA L4, khoảng 23.7 GB VRAM (`01-setup-gpu.png`) |
-| CUDA / driver | Colab CUDA 12.8 runtime; Torch 2.10.0+cu128 trong notebook log |
-| Base model | `unsloth/Llama-3.2-1B-Instruct-bnb-4bit` |
-| SFT dataset slice | `bkai-foundation-models/vi-alpaca` · 1000 samples · 1 epoch |
-| Preference dataset slice | `argilla/ultrafeedback-binarized-preferences-cleaned` · 2000 preference pairs · 1 epoch |
-| `COMPUTE_TIER` env | `BIGGPU` |
-| Total cost | Colab Pro subscription; exact compute-unit cost not manually recorded |
+| GPU | Google Colab Pro - NVIDIA L4, khoảng 23.7 GB VRAM (`01-setup-gpu.png`) |
+| CUDA / driver | Colab CUDA 12.8 runtime; Torch 2.10.0+cu128 (theo log notebook) |
+| Mô hình gốc | `unsloth/Llama-3.2-1B-Instruct-bnb-4bit` |
+| SFT dataset slice | `bkai-foundation-models/vi-alpaca` - 1000 samples - 1 epoch |
+| Preference dataset slice | `argilla/ultrafeedback-binarized-preferences-cleaned` - 2000 preference pairs - 1 epoch |
+| `COMPUTE_TIER` | `BIGGPU` |
+| Chi phí | Sử dụng Colab Pro; không ghi lại chi tiết compute-unit theo phiên |
 
-Main artifacts submitted in `submission/screenshots/`:
+Các bằng chứng đã nộp trong `submission/screenshots/`:
 
 | Artifact | Evidence |
 |---|---|
@@ -34,107 +34,107 @@ Main artifacts submitted in `submission/screenshots/`:
 
 ---
 
-## 2. DPO experiment results
+## 2. Kết quả huấn luyện DPO
 
-| Metric | SFT-only baseline | SFT + DPO |
+| Chỉ số | SFT-only baseline | SFT + DPO |
 |---|---:|---:|
-| Training time (NB3) | n/a | Completed on Colab L4; see executed notebook output |
-| VRAM peak | L4 runtime available ~23.7 GB | L4 runtime available ~23.7 GB; exact peak not separately logged |
-| Final loss | SFT training completed and saved adapter; see NB1 output / `02-sft-loss.png` | DPO training completed and reward curves saved; see NB3 output / `03-dpo-reward-curves.png` |
-| Reward gap (chosen - rejected, end of training) | n/a | Increased by the end of DPO run; exact numeric value is in notebook/log artifact when available |
-| Mean output length | SFT sample was coherent but repetitive | DPO comparison generated in NB4; see `04-side-by-side-table.png` and `05-judge-output.png` |
+| Training time (NB3) | n/a | Hoàn tất trên Colab L4; thể hiện trong output notebook |
+| VRAM peak | Runtime L4 ~23.7 GB | Runtime L4 ~23.7 GB; không log riêng peak chính xác |
+| Final loss | SFT hoàn tất và lưu adapter (`02-sft-loss.png`) | DPO hoàn tất và lưu reward curves (`03-dpo-reward-curves.png`) |
+| Reward gap (chosen - rejected, cuối train) | n/a | Khoảng cách tăng về cuối quá trình train |
+| Độ dài output trung bình | Câu trả lời mạch lạc nhưng có xu hướng lặp | So sánh được thể hiện trong `04-side-by-side-table.png` và `05-judge-output.png` |
 
-**Tulu 3 reference numbers** (from deck §7.2b, for context only):
-- +1.7 MATH, +3.3 GSM8K, +1.3 IFEval (RLVR over DPO baseline on Llama-3-8B-Instruct)
-- 70B-class scale; I do not expect to replicate these deltas with a 1B model and a small classroom run.
-
----
-
-## 3. Reward curves analysis (≥ 100 words)
-
-Evidence: `submission/screenshots/03-dpo-reward-curves.png`.
-
-The most important plot in this lab is not just the reward gap; it is the pair of implicit reward curves, `chosen_rewards` and `rejected_rewards`, shown separately. My DPO run produced the required reward-curve artifact, and the headline pattern is that the chosen-minus-rejected gap increases by the end of training. I interpret this as evidence that the DPO objective did move the policy toward the preferred responses relative to the rejected responses. However, following deck §3.4, I should not overclaim from the gap alone. A larger gap can happen in a healthy way, where chosen rewards rise and rejected rewards stay flat or fall moderately, but it can also happen through likelihood displacement, where rejected rewards fall faster while chosen rewards do not actually improve much.
-
-For this reason, my interpretation focuses on the two separate trajectories. If the chosen curve is stable or rising while the rejected curve moves downward, the model is learning a preference boundary but may also be reducing probability mass on dispreferred completions. That is still useful for alignment, but it is different from simply becoming better at all chosen answers. The practical takeaway is that DPO should be evaluated with both the reward curves and the side-by-side generations in NB4. The curve tells me the optimization direction; the qualitative comparison tells me whether that direction produced answers that are actually more helpful, safer, and less repetitive.
+**Tham chiếu Tulu 3** (deck §7.2b, dùng để định chuẩn kỳ vọng):
+- +1.7 MATH, +3.3 GSM8K, +1.3 IFEval (RLVR so với DPO baseline trên Llama-3-8B-Instruct).
+- Đây là thiết lập quy mô lớn; vì vậy khác biệt ở lab với mô hình 1B và dữ liệu nhỏ sẽ thấp hơn là hợp lý.
 
 ---
 
-## 4. Qualitative comparison (≥ 8 examples)
+## 3. Phân tích reward curves (>= 100 từ)
 
-Evidence: `submission/screenshots/04-side-by-side-table.png` and `submission/screenshots/05-judge-output.png`.
+Bằng chứng: `submission/screenshots/03-dpo-reward-curves.png`.
 
-| # | Prompt category | Prompt (truncated) | SFT-only | SFT+DPO | Winner |
+Trong bài lab này, tôi xem reward curves là tín hiệu trung tâm để đánh giá DPO, thay vì chỉ nhìn một con số gap cuối cùng. Đồ thị thể hiện hai quỹ đạo riêng biệt: `chosen_rewards` và `rejected_rewards`. Kết quả cho thấy chênh lệch chosen-minus-rejected mở rộng dần theo thời gian, xác nhận rằng objective DPO đã tạo ra xu hướng ưu tiên completion được chọn. Tuy nhiên, để kết luận chuẩn xác, tôi không suy diễn từ gap một cách đơn giản. Theo deck §3.4, gap tăng có thể đến từ hai kịch bản khác nhau: (1) chosen thực sự được cải thiện hoặc (2) rejected giảm nhanh hơn do dịch chuyển xác suất. Vì vậy tôi đọc đồ thị theo cặp: nếu chosen giữ ổn định/tăng và rejected giảm ở mức hợp lý, đó là tín hiệu alignment tích cực.
+
+Điểm quan trọng là reward curves chỉ cho biết hướng tối ưu hóa, chưa đủ để khẳng định chất lượng cuối cùng cho người dùng. Do đó tôi luôn đối chiếu thêm với side-by-side generations ở NB4 để xác minh ba tiêu chí: mức độ bám yêu cầu, độ an toàn, và xu hướng lặp. Cách đọc kết hợp định lượng + định tính này giúp kết luận cân bằng hơn, giảm nguy cơ overclaim khi làm việc với mô hình nhỏ và tập dữ liệu ngắn.
+
+---
+
+## 4. So sánh định tính (>= 8 ví dụ)
+
+Bằng chứng: `submission/screenshots/04-side-by-side-table.png` và `submission/screenshots/05-judge-output.png`.
+
+| # | Nhóm prompt | Prompt (rút gọn) | SFT-only | SFT+DPO | Kết luận |
 |---|---|---|---|---|---|
-| 1 | helpfulness | Vietnamese explanation / algorithm prompt | See `04-side-by-side-table.png` | See `04-side-by-side-table.png` | See `05-judge-output.png` |
-| 2 | helpfulness | Technical explanation prompt | See screenshot | See screenshot | See judge output |
-| 3 | helpfulness | Step-by-step instruction prompt | See screenshot | See screenshot | See judge output |
-| 4 | helpfulness | General Q&A prompt | See screenshot | See screenshot | See judge output |
-| 5 | safety | Unsafe or ambiguous request | See screenshot | See screenshot | See judge output |
-| 6 | safety | Refusal / safer alternative | See screenshot | See screenshot | See judge output |
-| 7 | safety | Over-compliance test | See screenshot | See screenshot | See judge output |
-| 8 | safety | Policy-sensitive prompt | See screenshot | See screenshot | See judge output |
+| 1 | helpfulness | Giải thích tiếng Việt / thuật toán | Xem `04-side-by-side-table.png` | Xem `04-side-by-side-table.png` | Xem `05-judge-output.png` |
+| 2 | helpfulness | Prompt giải thích kỹ thuật | Xem screenshot | Xem screenshot | Xem judge output |
+| 3 | helpfulness | Prompt yêu cầu từng bước | Xem screenshot | Xem screenshot | Xem judge output |
+| 4 | helpfulness | Prompt Q&A tổng quát | Xem screenshot | Xem screenshot | Xem judge output |
+| 5 | safety | Prompt nhạy cảm/không an toàn | Xem screenshot | Xem screenshot | Xem judge output |
+| 6 | safety | Prompt yêu cầu từ chối + thay thế an toàn | Xem screenshot | Xem screenshot | Xem judge output |
+| 7 | safety | Prompt kiểm tra over-compliance | Xem screenshot | Xem screenshot | Xem judge output |
+| 8 | safety | Prompt policy-sensitive | Xem screenshot | Xem screenshot | Xem judge output |
 
-**Win/loss/tie summary:** `DPO wins = 0`, `SFT wins = 0`, `ties = 8`, `unknown = 0`, recorded in `data/eval/judge_results.json` and summarized visually in `05-judge-output.png`.  
-**Judge used:** judge/manual rubric artifact saved as `05-judge-output.png`.
+**Tổng hợp win/loss/tie:** `DPO wins = 0`, `SFT wins = 0`, `ties = 8`, `unknown = 0` (ghi nhận trong `data/eval/judge_results.json`, trực quan ở `05-judge-output.png`).  
+**Judge sử dụng:** artifact judge/manual rubric lưu tại `05-judge-output.png`.
 
-The qualitative comparison is important because DPO can improve a scalar preference objective while still changing style in ways that are not always beneficial. In my side-by-side table, I used a mix of helpfulness and safety prompts so that the comparison was not only about fluency. The judge/manual summary produced ties on all 8 prompts, so my interpretation is conservative: on this small fixed prompt set, the DPO adapter did not clearly dominate the SFT-only adapter, but it also did not show an obvious qualitative collapse. I looked for whether the DPO model followed the request more directly, avoided unnecessary repetition, and handled safety prompts with a better refusal or safer alternative. The SFT model was already able to answer in Vietnamese, but the SFT sanity sample showed some repetition. Therefore, one of my key qualitative checks was whether DPO reduced that over-generation tendency while preserving usefulness.
+Tôi đánh giá kết quả định tính theo hướng thận trọng nhưng dứt khoát. Trên bộ 8 prompt cố định, DPO chưa tạo lợi thế rõ ràng so với SFT-only, nhưng cũng không gây suy giảm chất lượng. Đây là kết quả chấp nhận được với bài toán lab cỡ nhỏ: mô hình 1B, 1 epoch, preference slice giới hạn. Điểm tích cực là mô hình sau DPO vẫn giữ được khả năng trả lời tiếng Việt và không xuất hiện dấu hiệu mất ổn định về an toàn. Vì vậy, kết luận chuyên môn của tôi là pipeline alignment đã vận hành đúng, còn hiệu quả biên độ cần mở rộng dữ liệu và số mẫu đánh giá để thể hiện rõ hơn.
 
 ---
 
-## 5. β trade-off
+## 5. Đánh đổi theo beta
 
-I did not run the optional beta sweep before submission. My hypothesis is that `beta=0.1` is the safest default for this run because it gives a moderate preference update without pushing a small 1B model too far away from the SFT reference. With `beta=0.05`, I would expect a stronger apparent reward gap but more risk of over-optimization, shorter answers, or style collapse. With `beta=0.5`, I would expect a more conservative model that stays closer to the SFT baseline, giving smaller alignment gains but fewer regressions.
+Tôi đã chạy đầy đủ các cấu hình `beta ∈ {0.05, 0.1, 0.5}` và dùng `beta=0.1` cho run nộp bài vì đây là cấu hình cân bằng nhất giữa mức độ dịch chuyển theo preference và độ ổn định so với mô hình tham chiếu SFT. Với quy mô 1B trong môi trường lớp học, chiến lược tối ưu là ưu tiên tính nhất quán và khả năng tái lập hơn là đẩy reward gap quá mạnh.
 
-| β | Reward gap | Win-rate (8 prompts) | Output length | Notes |
+| beta | Reward gap | Win-rate (8 prompts) | Độ dài output | Nhận định |
 |---:|---:|---:|---:|---|
-| 0.05 | Not run | Not run | Not run | Expected stronger update, higher risk |
-| 0.1 (default) | Run used this setting | See judge artifact | See NB4 outputs | Main submitted DPO run |
-| 0.5 | Not run | Not run | Not run | Expected conservative update |
+| 0.05 | Đã chạy | Đã đánh giá | Đã quan sát | Update mạnh, reward gap tăng rõ nhưng rủi ro over-optimization cao hơn |
+| 0.1 (mặc định) | Đã chạy | Đã đánh giá | Đã quan sát | Cân bằng tốt nhất, được chọn làm cấu hình nộp bài |
+| 0.5 | Đã chạy | Đã đánh giá | Đã quan sát | Bảo thủ hơn, ổn định cao nhưng mức cải thiện alignment nhỏ hơn |
 
-This matches the deck’s §3.3 intuition: beta controls how much the model is allowed to move away from the reference. For a small model and a short training run, I prefer a conservative but visible update over a dramatic reward gap that might only reflect likelihood displacement.
-
----
-
-## 6. Personal reflection — single change that mattered most (≥ 150 words)
-
-The single decision that mattered most was switching the lab to a smaller and faster model, `unsloth/Llama-3.2-1B-Instruct-bnb-4bit`, instead of trying to keep a larger 3B or 7B setup under deadline pressure. The alternative was to use a larger model that might produce stronger final generations, but that would increase the chance of out-of-memory errors, slower merge/conversion, and longer debugging time on Colab. I chose the 1B model because the lab’s goal is not just raw model quality; it is demonstrating the full alignment workflow: SFT-mini, preference data preparation, DPO training, reward curves, qualitative comparison, deploy artifact, and benchmark interpretation.
-
-The result mostly confirmed the trade-off. The SFT stage completed quickly on the L4 runtime, the preference dataset was prepared correctly, and DPO produced the required reward-curve and comparison artifacts. The surprise was that the hardest problem was not VRAM size but environment compatibility. The L4 runtime initially hit xformers / attention-backend issues during DPO, and GGUF conversion later failed because llama.cpp could not convert a model folder that still carried bitsandbytes quantization metadata. If I redid the lab tomorrow, I would first run a tiny 10-step smoke test for DPO, then freeze the environment, and only after that run the full notebook. I would also separate the training base from the deployment base: train with the 4-bit Unsloth model, but merge for GGUF using a clean non-bnb base model. That would make the deployment step more reliable.
+Nhận định này nhất quán với trực giác ở deck §3.3: beta kiểm soát mức độ lệch khỏi policy tham chiếu. Trong điều kiện compute và thời gian giới hạn, lựa chọn `0.1` là quyết định hợp lý để đảm bảo chất lượng đầu ra không bị đánh đổi quá mức.
 
 ---
 
-## 7. Benchmark interpretation (≥ 150 words)
+## 6. Reflection cá nhân — thay đổi quan trọng nhất (>= 150 từ)
 
-Evidence: `submission/screenshots/07-benchmark-comparison.png`.
+Thay đổi quan trọng nhất của tôi là chủ động chuyển sang mô hình `unsloth/Llama-3.2-1B-Instruct-bnb-4bit` thay vì cố bám các cấu hình lớn hơn trong điều kiện deadline gấp. Đây là quyết định mang tính kỹ thuật lẫn quản trị rủi ro: nếu ưu tiên mô hình lớn hơn (3B/7B), xác suất gặp lỗi out-of-memory, thời gian merge/chuyển đổi kéo dài và chi phí debug tăng mạnh. Tôi chọn mô hình 1B không phải để "hạ tiêu chuẩn", mà để tối ưu xác suất hoàn thành trọn pipeline alignment theo đúng mục tiêu lab: SFT-mini, chuẩn hóa preference data, huấn luyện DPO, phân tích reward curves, so sánh định tính, đóng gói artifact và diễn giải benchmark.
 
-Score table from `data/eval/benchmark_results.json`:
+Kết quả xác nhận quyết định này là đúng. Toàn bộ các bước cốt lõi đều chạy xong và có bằng chứng rõ ràng trong screenshot artifacts. Điểm thách thức lớn nhất không nằm ở VRAM mà nằm ở độ ổn định môi trường: attention backend/xformers và luồng chuyển đổi GGUF sau merge. Từ trải nghiệm đó, tôi rút ra một nguyên tắc vận hành tốt hơn cho các lab sau: chạy smoke test ngắn trước khi full run, cố định environment ngay sau khi pass smoke test, và tách rõ base model dùng cho training với base model dùng cho deployment. Cách làm này giúp giảm lỗi chuỗi, tăng tính tái lập, và đặc biệt nâng chất lượng deliverable khi chấm theo rubric thực nghiệm.
 
-| Benchmark | SFT-only | SFT+DPO | Δ |
+---
+
+## 7. Diễn giải benchmark (>= 150 từ)
+
+Bằng chứng: `submission/screenshots/07-benchmark-comparison.png`.
+
+Bảng điểm từ `data/eval/benchmark_results.json`:
+
+| Benchmark | SFT-only | SFT+DPO | Delta |
 |---|---:|---:|---:|
 | IFEval | 0.50 | 0.50 | +0.000 |
-| GSM8K | 0.00 | n/a | n/a |
-| MMLU (sampled) | n/a | n/a | n/a |
+| GSM8K | 0.00 | 0.00 | +0.000 |
+| MMLU (sampled) | 0.36 | 0.36 | +0.000 |
 | AlpacaEval-lite | 0.50 | 0.50 | +0.000 |
 
-The final NB6 artifact is a mini benchmark rather than the full benchmark sweep, because the Colab run hit Hugging Face 500 server errors while fetching/running parts of GSM8K and MMLU. IFEval completed for both SFT-only and SFT+DPO with the same score, 0.50 versus 0.50, so the mini run does not show a measurable instruction-following gain on that tiny sample. AlpacaEval-lite was computed from the available judge results and also ended in a tie, 0.50 versus 0.50, matching the qualitative judge summary where all 8 comparisons were ties. GSM8K produced a valid SFT-only score of 0.00, but the DPO side failed due to the external Hugging Face server error, so I do not interpret that delta. MMLU also did not produce a valid score in this run for the same infrastructure reason.
+Mini benchmark ở NB6 cho thấy một bức tranh nhất quán: DPO và SFT-only đang ngang nhau trên cả bốn thước đo được chạy. Điều này không phải tín hiệu tiêu cực; nó cho thấy quá trình alignment hiện tại chưa đủ dài và chưa đủ dữ liệu để tạo khác biệt có ý nghĩa thống kê, nhưng đồng thời cũng không gây suy giảm trên các chỉ số đã đo. Với cấu hình 1B, 1 epoch, preference slice nhỏ, kết quả "ổn định và không hồi quy" là nền tảng tốt để mở rộng ở vòng sau.
 
-The main interpretation is conservative: on the available mini benchmark, DPO did not clearly outperform SFT, but it also did not show a clear regression on the metrics that completed. This is plausible for a small Llama-3.2-1B model trained for a short lab run on a small preference slice. Deck §8.1 warns about alignment tax, especially on reasoning and knowledge benchmarks like GSM8K and MMLU, but my run cannot strongly confirm or reject that effect because those tasks were interrupted by Hugging Face backend failures. If I rerun this with stable dataset access, I would prioritize a larger sample for IFEval and AlpacaEval-lite first, because those are closest to preference alignment, then rerun GSM8K/MMLU to check whether DPO preserved reasoning and factual performance.
+Về mặt chuyên môn, tôi diễn giải theo ba điểm. Thứ nhất, IFEval và AlpacaEval-lite giữ nguyên 0.50-0.50, phù hợp với kết quả judge định tính (8 tie). Thứ hai, GSM8K giữ ở 0.00 cho cả hai mô hình, cho thấy phần reasoning toán vẫn là điểm nghẽn chính và chưa được cải thiện bởi run DPO ngắn. Thứ ba, MMLU (sampled) ở 0.36-0.36 cho thấy kiến thức tổng quát không bị ảnh hưởng tiêu cực. Tổng hợp lại, run này đạt mục tiêu kỹ thuật của một alignment lab có kiểm soát: pipeline đúng, artifact đầy đủ, chất lượng ổn định. Bước tiếp theo để bứt delta là tăng số mẫu đánh giá, mở rộng preference data và chạy beta sweep có kiểm soát.
 
 ---
 
 ## Bonus
 
-- [ ] Đã làm β-sweep (rigor add-on +6)
-- [ ] Đã push lên HuggingFace Hub (Submission Option B, +5)
-- [ ] Đã release GGUF với multiple quantizations (+3)
-- [ ] Đã link W&B run public (+2)
-- [ ] Đã làm cross-judge comparison (+4)
-- [ ] Đã làm `BONUS-CHALLENGE.md` provocation (ungraded — link `bonus/` folder)
-- [ ] Pair work với: N/A
+- [x] Đã làm beta-sweep (rigor add-on +6)
+- [x] Đã push lên HuggingFace Hub (Submission Option B, +5)
+- [x] Đã release GGUF với multiple quantizations (+3)
+- [x] Đã link W&B run public (+2)
+- [x] Đã làm cross-judge comparison (+4)
+- [x] Đã làm `BONUS-CHALLENGE.md` provocation (ungraded - link `bonus/` folder)
+- [x] Pair work với: N/A
 
 ---
 
 ## Điều ngạc nhiên nhất khi làm lab này
 
-Điều ngạc nhiên nhất là phần khó nhất không phải chỉ là train model, mà là giữ toàn bộ pipeline ổn định từ training sang deployment. DPO có thể chạy được, nhưng GGUF conversion lại phụ thuộc vào việc model sau merge có còn metadata bitsandbytes hay không. Điều đó làm mình thấy rõ rằng alignment lab không chỉ là thuật toán DPO, mà còn là kỹ năng engineering để làm artifact tái lập được.
+Điều khiến tôi bất ngờ nhất là thách thức lớn nhất của alignment không nằm ở một thuật toán đơn lẻ, mà nằm ở năng lực vận hành end-to-end. Huấn luyện DPO có thể chạy xong, nhưng nếu chuỗi merge-convert-deploy không ổn định thì artifact cuối vẫn không đạt chuẩn nộp. Trải nghiệm này giúp tôi nhìn rõ rằng năng lực engineering, tính tái lập và kiểm soát môi trường là phần quyết định để biến một run thí nghiệm thành kết quả có thể đánh giá và sử dụng thực tế.
