@@ -82,6 +82,7 @@ import torch
 
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
 USE_BF16, USE_FP16, PRECISION_REASON = choose_mixed_precision()
+MODEL_DTYPE = torch.float16 if USE_FP16 else torch.bfloat16 if USE_BF16 else None
 print(f"mixed precision: {PRECISION_REASON}")
 
 # %% [markdown]
@@ -99,7 +100,7 @@ from peft import PeftModel
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=BASE_MODEL,
     max_seq_length=MAX_LEN,
-    dtype=None,
+    dtype=MODEL_DTYPE,
     load_in_4bit=True,
 )
 if tokenizer.pad_token is None:

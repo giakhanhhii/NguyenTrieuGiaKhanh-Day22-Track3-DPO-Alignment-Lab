@@ -55,10 +55,11 @@ def main():
     from unsloth import FastLanguageModel
 
     use_bf16, use_fp16, precision_reason = choose_mixed_precision()
+    model_dtype = torch.float16 if use_fp16 else torch.bfloat16 if use_bf16 else None
     print(f"Precision:  {precision_reason}")
 
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=base_model, max_seq_length=max_len, dtype=None, load_in_4bit=True,
+        model_name=base_model, max_seq_length=max_len, dtype=model_dtype, load_in_4bit=True,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
