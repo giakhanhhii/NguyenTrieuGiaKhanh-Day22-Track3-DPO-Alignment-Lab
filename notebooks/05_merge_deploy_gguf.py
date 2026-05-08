@@ -21,8 +21,17 @@
 # %%
 import os
 import json
+import sys
 from pathlib import Path
 
+ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(ROOT_FOR_IMPORT))
+
+from scripts.lab_utils import get_repo_root, load_lab_env, render_text_card
+
+REPO_ROOT = get_repo_root()
+load_lab_env(REPO_ROOT)
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
 BASE_MODEL = (
     "unsloth/Qwen2.5-3B-bnb-4bit" if COMPUTE_TIER == "T4"
@@ -30,7 +39,6 @@ BASE_MODEL = (
 )
 MAX_LEN = 512 if COMPUTE_TIER == "T4" else 1024
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 DPO_PATH = REPO_ROOT / "adapters" / "dpo"
 MERGED_PATH = REPO_ROOT / "adapters" / "merged-fp16"
 GGUF_DIR = REPO_ROOT / "gguf"
@@ -69,6 +77,8 @@ if tokenizer.pad_token is None:
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 model = PeftModel.from_pretrained(model, str(SFT_PATH))
 print(f"Loaded SFT-mini adapter from {SFT_PATH}")
+model = PeftModel.from_pretrained(model, str(DPO_PATH))
+print(f"Loaded DPO adapter from {DPO_PATH}")
 
 # %% [markdown]
 # > **Note:** The DPO adapter trained in NB3 stacks on top of SFT. To get a fully
@@ -186,6 +196,23 @@ response = llm.create_chat_completion(
 print(f"PROMPT:\n  {SMOKE_PROMPT}\n")
 print(f"RESPONSE (Q4_K_M GGUF, llama-cpp-python):\n  {response['choices'][0]['message']['content']}")
 print(f"\nTokens used: {response['usage']}")
+
+screenshot_dir = REPO_ROOT / "submission" / "screenshots"
+screenshot_dir.mkdir(parents=True, exist_ok=True)
+render_text_card(
+    screenshot_dir / "06-gguf-smoke.png",
+    "GGUF smoke test",
+    [
+        f"GGUF file    : {gguf_path.name}",
+        f"Quantization : Q4_K_M",
+        f"Prompt       : {SMOKE_PROMPT}",
+        "",
+        "Response:",
+        response["choices"][0]["message"]["content"],
+    ],
+    height=5.3,
+)
+print(f"Saved GGUF smoke screenshot to {screenshot_dir / '06-gguf-smoke.png'}")
 
 # %% [markdown]
 # ## 5. Optional — vLLM serving (BigGPU only)

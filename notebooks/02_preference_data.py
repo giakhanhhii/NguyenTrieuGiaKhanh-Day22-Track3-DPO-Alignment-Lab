@@ -24,16 +24,26 @@
 
 # %%
 import os
+import sys
 from pathlib import Path
 
+ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(ROOT_FOR_IMPORT))
+
+from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env
+
+REPO_ROOT = get_repo_root()
+load_lab_env(REPO_ROOT)
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
+LAB_MINIMAL = env_flag("LAB_MINIMAL", False)
 
 if COMPUTE_TIER == "T4":
-    PREF_SLICE = 2000
+    PREF_SLICE = env_int("PREF_SLICE", 512 if LAB_MINIMAL else 2000)
     MAX_LEN = 512
     MAX_PROMPT_LEN = 256
 else:
-    PREF_SLICE = 5000
+    PREF_SLICE = env_int("PREF_SLICE", 1000 if LAB_MINIMAL else 5000)
     MAX_LEN = 1024
     MAX_PROMPT_LEN = 512
 
@@ -41,7 +51,6 @@ PREF_DATASET = os.environ.get(
     "PREF_DATASET", "argilla/ultrafeedback-binarized-preferences-cleaned"
 )
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 ADAPTER_DIR = REPO_ROOT / "adapters" / "sft-mini"
 PREF_OUT = REPO_ROOT / "data" / "pref"
 PREF_OUT.mkdir(parents=True, exist_ok=True)

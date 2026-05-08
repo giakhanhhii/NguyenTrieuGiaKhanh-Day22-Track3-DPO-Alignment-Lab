@@ -26,26 +26,36 @@
 import os
 import json
 import gc
+import sys
 from pathlib import Path
 
+ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(ROOT_FOR_IMPORT))
+
+from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env
+
+REPO_ROOT = get_repo_root()
+load_lab_env(REPO_ROOT)
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
+LAB_MINIMAL = env_flag("LAB_MINIMAL", False)
 
 if COMPUTE_TIER == "T4":
-    LIMIT_IFEVAL = 540
-    LIMIT_GSM8K = 500
-    LIMIT_MMLU = 500
-    LIMIT_ALPACA = 100
+    LIMIT_IFEVAL = env_int("LIMIT_IFEVAL", 64 if LAB_MINIMAL else 540)
+    LIMIT_GSM8K = env_int("LIMIT_GSM8K", 40 if LAB_MINIMAL else 500)
+    LIMIT_MMLU = env_int("LIMIT_MMLU", 40 if LAB_MINIMAL else 500)
+    LIMIT_ALPACA = env_int("LIMIT_ALPACA", 16 if LAB_MINIMAL else 100)
     BATCH_SIZE = 1
 else:
-    LIMIT_IFEVAL = 540
-    LIMIT_GSM8K = 1319
-    LIMIT_MMLU = 5000
-    LIMIT_ALPACA = 250
+    LIMIT_IFEVAL = env_int("LIMIT_IFEVAL", 128 if LAB_MINIMAL else 540)
+    LIMIT_GSM8K = env_int("LIMIT_GSM8K", 120 if LAB_MINIMAL else 1319)
+    LIMIT_MMLU = env_int("LIMIT_MMLU", 200 if LAB_MINIMAL else 5000)
+    LIMIT_ALPACA = env_int("LIMIT_ALPACA", 32 if LAB_MINIMAL else 250)
     BATCH_SIZE = 4
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 DPO_PATH = REPO_ROOT / "adapters" / "dpo"
+MERGED_PATH = REPO_ROOT / "adapters" / "merged-fp16"
 EVAL_OUT = REPO_ROOT / "data" / "eval"
 EVAL_OUT.mkdir(parents=True, exist_ok=True)
 
@@ -75,10 +85,14 @@ def run_lm_eval(adapter_path, tasks, limit, num_fewshot, label):
     """Run lm-eval-harness with PEFT adapter on top of base, return parsed metrics."""
     base = "unsloth/Qwen2.5-3B-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
     out_dir = EVAL_OUT / f"lm-{label}-{tasks}"
+    if label == "dpo" and MERGED_PATH.exists():
+        model_args = f"pretrained={MERGED_PATH},load_in_4bit=True"
+    else:
+        model_args = f"pretrained={base},peft={adapter_path},load_in_4bit=True"
     cmd = [
         "lm_eval",
         "--model", "hf",
-        "--model_args", f"pretrained={base},peft={adapter_path},load_in_4bit=True",
+        "--model_args", model_args,
         "--tasks", tasks,
         "--num_fewshot", str(num_fewshot),
         "--limit", str(limit),
@@ -188,12 +202,22 @@ def generate_with_adapter(adapter_path, prompts, max_new_tokens=256):
     base = "unsloth/Qwen2.5-3B-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
     max_len = 512 if COMPUTE_TIER == "T4" else 1024
 
+    if Path(adapter_path).resolve() == DPO_PATH.resolve() and MERGED_PATH.exists():
+        model_name = str(MERGED_PATH)
+        load_in_4bit = True
+    else:
+        model_name = base
+        load_in_4bit = True
+
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=base, max_seq_length=max_len, dtype=None, load_in_4bit=True,
+        model_name=model_name, max_seq_length=max_len, dtype=None, load_in_4bit=load_in_4bit,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    model = PeftModel.from_pretrained(model, str(adapter_path))
+    if Path(adapter_path).resolve() == DPO_PATH.resolve() and not MERGED_PATH.exists():
+        model = PeftModel.from_pretrained(model, str(SFT_PATH))
+    if model_name == base:
+        model = PeftModel.from_pretrained(model, str(adapter_path))
     FastLanguageModel.for_inference(model)
 
     outputs = []

@@ -21,9 +21,19 @@
 
 # %%
 import os
+import sys
 from pathlib import Path
 
+ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(ROOT_FOR_IMPORT))
+
+from scripts.lab_utils import env_flag, env_float, env_int, get_repo_root, load_lab_env
+
+REPO_ROOT = get_repo_root()
+load_lab_env(REPO_ROOT)
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
+LAB_MINIMAL = env_flag("LAB_MINIMAL", False)
 
 if COMPUTE_TIER == "T4":
     BASE_MODEL = "unsloth/Qwen2.5-3B-bnb-4bit"
@@ -39,11 +49,10 @@ else:
     GRAD_ACCUM = 4
 
 # Hyperparameters from deck §5.2 lines 849–886
-BETA = float(os.environ.get("DPO_BETA", "0.1"))
-LR = float(os.environ.get("DPO_LR", "5e-7"))
-EPOCHS = int(os.environ.get("DPO_EPOCHS", "1"))
+BETA = env_float("DPO_BETA", 0.1)
+LR = env_float("DPO_LR", 5e-7)
+EPOCHS = env_int("DPO_EPOCHS", 1)
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
 DPO_OUT = REPO_ROOT / "adapters" / "dpo"
 PREF_PATH = REPO_ROOT / "data" / "pref" / "train.parquet"
@@ -196,6 +205,9 @@ logs = logs[logs["loss"].notna() if "loss" in logs.columns else logs.index].copy
 # TRL DPO logs include rewards/chosen, rewards/rejected, rewards/margins, kl
 chosen_col = "rewards/chosen" if "rewards/chosen" in logs.columns else None
 rejected_col = "rewards/rejected" if "rewards/rejected" in logs.columns else None
+last_chosen = None
+last_rejected = None
+last_gap = None
 
 fig, axes = plt.subplots(1, 2, figsize=(13, 4.2))
 

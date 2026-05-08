@@ -23,11 +23,22 @@
 
 # %%
 import os
+import sys
 from pathlib import Path
+
+ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+if str(ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(ROOT_FOR_IMPORT))
+
+from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env, render_text_card
+
+REPO_ROOT = get_repo_root()
+load_lab_env(REPO_ROOT)
 
 # Tier detection. Defaults to T4 if env not set.
 COMPUTE_TIER = os.environ.get("COMPUTE_TIER", "T4").upper()
 assert COMPUTE_TIER in ("T4", "BIGGPU"), f"Invalid COMPUTE_TIER: {COMPUTE_TIER}"
+LAB_MINIMAL = env_flag("LAB_MINIMAL", False)
 
 # Tier-specific hyperparameters
 if COMPUTE_TIER == "T4":
@@ -42,10 +53,9 @@ else:  # BIGGPU
     GRAD_ACCUM = 4
 
 SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-alpaca-cleaned")
-SFT_SLICE = 1000
+SFT_SLICE = env_int("SFT_SLICE", 256 if LAB_MINIMAL else 1000)
 NUM_EPOCHS = 1
 
-REPO_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 ADAPTER_OUT = REPO_ROOT / "adapters" / "sft-mini"
 ADAPTER_OUT.mkdir(parents=True, exist_ok=True)
 
@@ -62,6 +72,24 @@ import torch
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
 gpu = torch.cuda.get_device_properties(0)
 print(f"GPU: {gpu.name}  ({gpu.total_memory / 1e9:.1f} GB)")
+
+screenshot_dir = REPO_ROOT / "submission" / "screenshots"
+screenshot_dir.mkdir(parents=True, exist_ok=True)
+render_text_card(
+    screenshot_dir / "01-setup-gpu.png",
+    "Lab 22 setup summary",
+    [
+        f"COMPUTE_TIER   : {COMPUTE_TIER}",
+        f"BASE_MODEL     : {BASE_MODEL}",
+        f"SFT_DATASET    : {SFT_DATASET}",
+        f"SFT_SLICE      : {SFT_SLICE}",
+        f"GPU            : {gpu.name}",
+        f"GPU_VRAM_GB    : {gpu.total_memory / 1e9:.1f}",
+        f"LAB_MINIMAL    : {LAB_MINIMAL}",
+    ],
+    height=4.2,
+)
+print(f"Saved setup screenshot to {screenshot_dir / '01-setup-gpu.png'}")
 
 # %% [markdown]
 # ## 1. Load base model with Unsloth
@@ -186,8 +214,6 @@ ax.set_ylabel("Loss")
 ax.set_title(f"SFT-mini loss · {COMPUTE_TIER} · {BASE_MODEL.split('/')[-1]} · {SFT_SLICE} samples")
 ax.grid(True, alpha=0.3)
 fig.tight_layout()
-screenshot_dir = REPO_ROOT / "submission" / "screenshots"
-screenshot_dir.mkdir(parents=True, exist_ok=True)
 fig.savefig(screenshot_dir / "02-sft-loss.png", dpi=120)
 plt.show()
 
