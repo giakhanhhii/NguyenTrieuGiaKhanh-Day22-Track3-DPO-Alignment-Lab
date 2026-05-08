@@ -71,6 +71,34 @@ def choose_mixed_precision() -> tuple[bool, bool, str]:
     return True, False, f"bf16 on {gpu_name}"
 
 
+def configure_attention_backend() -> tuple[str | None, str]:
+    """Pick a safer attention backend for Colab GPUs.
+
+    Some Colab L4 sessions hit xformers backward kernel failures in DPO even
+    after switching precision. Prefer SDPA there and disable xformers eagerly
+    before importing Unsloth / Transformers model code.
+    """
+    import torch
+
+    if env_flag("FORCE_SDPA_ATTENTION", False):
+        os.environ.setdefault("XFORMERS_DISABLED", "1")
+        os.environ.setdefault("DISABLE_XFORMERS", "1")
+        os.environ.setdefault("UNSLOTH_DISABLE_XFORMERS", "1")
+        return "sdpa", "sdpa forced by FORCE_SDPA_ATTENTION"
+
+    if not torch.cuda.is_available():
+        return None, "default attention backend (no CUDA)"
+
+    gpu_name = torch.cuda.get_device_name(0).upper()
+    if "L4" in gpu_name:
+        os.environ.setdefault("XFORMERS_DISABLED", "1")
+        os.environ.setdefault("DISABLE_XFORMERS", "1")
+        os.environ.setdefault("UNSLOTH_DISABLE_XFORMERS", "1")
+        return "sdpa", "sdpa on L4 with xformers disabled for DPO stability"
+
+    return None, f"default attention backend on {gpu_name}"
+
+
 def render_text_card(
     output_path: Path,
     title: str,

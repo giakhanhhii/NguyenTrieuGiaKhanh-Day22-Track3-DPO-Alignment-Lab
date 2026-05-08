@@ -29,6 +29,7 @@ if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
 from scripts.lab_utils import (
+    configure_attention_backend,
     choose_mixed_precision,
     env_flag,
     env_float,
@@ -81,9 +82,11 @@ print(f"output:          {DPO_OUT}")
 import torch
 
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
+ATTN_IMPL, ATTN_REASON = configure_attention_backend()
 USE_BF16, USE_FP16, PRECISION_REASON = choose_mixed_precision()
 MODEL_DTYPE = torch.float16 if USE_FP16 else torch.bfloat16 if USE_BF16 else None
 print(f"mixed precision: {PRECISION_REASON}")
+print(f"attention backend: {ATTN_REASON}")
 
 # %% [markdown]
 # ## 1. Load policy + reference (the VRAM-doubling part)
@@ -102,6 +105,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     max_seq_length=MAX_LEN,
     dtype=MODEL_DTYPE,
     load_in_4bit=True,
+    attn_implementation=ATTN_IMPL,
 )
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token

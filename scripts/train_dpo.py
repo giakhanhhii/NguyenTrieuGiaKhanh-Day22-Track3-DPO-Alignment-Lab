@@ -47,19 +47,25 @@ def main():
     print(f"Beta / LR:  {args.beta} / {args.lr}")
     print(f"Output:     {output}")
 
-    from scripts.lab_utils import choose_mixed_precision
+    from scripts.lab_utils import choose_mixed_precision, configure_attention_backend
     import torch
     from datasets import Dataset
     from peft import PeftModel
     from trl import DPOConfig, DPOTrainer
     from unsloth import FastLanguageModel
 
+    attn_impl, attn_reason = configure_attention_backend()
     use_bf16, use_fp16, precision_reason = choose_mixed_precision()
     model_dtype = torch.float16 if use_fp16 else torch.bfloat16 if use_bf16 else None
     print(f"Precision:  {precision_reason}")
+    print(f"Attention:  {attn_reason}")
 
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=base_model, max_seq_length=max_len, dtype=model_dtype, load_in_4bit=True,
+        model_name=base_model,
+        max_seq_length=max_len,
+        dtype=model_dtype,
+        load_in_4bit=True,
+        attn_implementation=attn_impl,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
