@@ -44,6 +44,33 @@ def env_flag(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def choose_mixed_precision() -> tuple[bool, bool, str]:
+    """Pick a safer bf16/fp16 setting for Colab GPUs.
+
+    L4/Ada runtimes have been observed to hit xformers backward failures with
+    bf16 in TRL DPO training. Default to fp16 there, while keeping bf16 on
+    A100/H100-class hardware where it is usually stable and faster.
+    """
+    import torch
+
+    if env_flag("FORCE_FP16", False):
+        return False, True, "fp16 forced by FORCE_FP16"
+    if env_flag("FORCE_BF16", False):
+        return True, False, "bf16 forced by FORCE_BF16"
+
+    if not torch.cuda.is_available():
+        return False, True, "fp16 fallback (no CUDA)"
+
+    if not torch.cuda.is_bf16_supported():
+        return False, True, "fp16 fallback (bf16 unsupported)"
+
+    gpu_name = torch.cuda.get_device_name(0).upper()
+    if "L4" in gpu_name:
+        return False, True, "fp16 on L4 to avoid xformers bf16 backward failures"
+
+    return True, False, f"bf16 on {gpu_name}"
+
+
 def render_text_card(
     output_path: Path,
     title: str,

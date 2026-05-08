@@ -28,7 +28,14 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_float, env_int, get_repo_root, load_lab_env
+from scripts.lab_utils import (
+    choose_mixed_precision,
+    env_flag,
+    env_float,
+    env_int,
+    get_repo_root,
+    load_lab_env,
+)
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -74,6 +81,8 @@ print(f"output:          {DPO_OUT}")
 import torch
 
 assert torch.cuda.is_available(), "DPO needs a CUDA GPU. See HARDWARE-GUIDE.md."
+USE_BF16, USE_FP16, PRECISION_REASON = choose_mixed_precision()
+print(f"mixed precision: {PRECISION_REASON}")
 
 # %% [markdown]
 # ## 1. Load policy + reference (the VRAM-doubling part)
@@ -146,8 +155,8 @@ dpo_config = DPOConfig(
     logging_steps=10,
     save_strategy="no",
     optim="adamw_8bit",
-    bf16=torch.cuda.is_bf16_supported(),
-    fp16=not torch.cuda.is_bf16_supported(),
+    bf16=USE_BF16,
+    fp16=USE_FP16,
     seed=42,
     loss_type="sigmoid",         # DPO standard (alternatives: ipo, hinge, kto)
     report_to="none",

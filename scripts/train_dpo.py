@@ -47,11 +47,15 @@ def main():
     print(f"Beta / LR:  {args.beta} / {args.lr}")
     print(f"Output:     {output}")
 
+    from scripts.lab_utils import choose_mixed_precision
     import torch
     from datasets import Dataset
     from peft import PeftModel
     from trl import DPOConfig, DPOTrainer
     from unsloth import FastLanguageModel
+
+    use_bf16, use_fp16, precision_reason = choose_mixed_precision()
+    print(f"Precision:  {precision_reason}")
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=base_model, max_seq_length=max_len, dtype=None, load_in_4bit=True,
@@ -82,8 +86,8 @@ def main():
         logging_steps=10,
         save_strategy="no",
         optim="adamw_8bit",
-        bf16=torch.cuda.is_bf16_supported(),
-        fp16=not torch.cuda.is_bf16_supported(),
+        bf16=use_bf16,
+        fp16=use_fp16,
         seed=42,
         loss_type="sigmoid",
         report_to="none",
