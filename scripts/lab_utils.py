@@ -99,6 +99,24 @@ def configure_attention_backend() -> tuple[str | None, str]:
     return None, f"default attention backend on {gpu_name}"
 
 
+LLAMA3_CHAT_TEMPLATE = """{% for message in messages %}{% if loop.index0 == 0 %}{{ bos_token }}{% endif %}{{ '<|start_header_id|>' + message['role'] + '<|end_header_id|>\n\n' + (message['content'] | trim) + '<|eot_id|>' }}{% endfor %}{% if add_generation_prompt %}{{ '<|start_header_id|>assistant<|end_header_id|>\n\n' }}{% endif %}"""
+
+
+def ensure_chat_template(tokenizer, model_name: str | None = None):
+    """Ensure Llama/Qwen chat-format calls work even when the tokenizer omits a template."""
+    if getattr(tokenizer, "chat_template", None):
+        return tokenizer
+
+    model_hint = (model_name or getattr(tokenizer, "name_or_path", "") or "").lower()
+    if "llama" in model_hint or "sft-mini" in model_hint or "adapter" in model_hint:
+        tokenizer.chat_template = LLAMA3_CHAT_TEMPLATE
+        print("Set tokenizer.chat_template = Llama-3 fallback template")
+    else:
+        tokenizer.chat_template = LLAMA3_CHAT_TEMPLATE
+        print("Set tokenizer.chat_template = fallback chat template")
+    return tokenizer
+
+
 def render_text_card(
     output_path: Path,
     title: str,

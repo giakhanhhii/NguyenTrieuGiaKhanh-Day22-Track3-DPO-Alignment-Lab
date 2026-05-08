@@ -33,7 +33,7 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env, package_submission_artifacts
+from scripts.lab_utils import ensure_chat_template, env_flag, env_int, get_repo_root, load_lab_env, package_submission_artifacts
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -84,7 +84,7 @@ import subprocess
 
 def run_lm_eval(adapter_path, tasks, limit, num_fewshot, label):
     """Run lm-eval-harness with PEFT adapter on top of base, return parsed metrics."""
-    base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
+    base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     out_dir = EVAL_OUT / f"lm-{label}-{tasks}"
     if label == "dpo":
         model_args = f"pretrained={MERGED_PATH},load_in_4bit=True"
@@ -200,7 +200,7 @@ def generate_with_adapter(adapter_path, prompts, max_new_tokens=256):
     from unsloth import FastLanguageModel
     from peft import PeftModel
 
-    base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit" if COMPUTE_TIER == "T4" else "unsloth/Qwen2.5-7B-bnb-4bit"
+    base = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     max_len = 512 if COMPUTE_TIER == "T4" else 1024
 
     if Path(adapter_path).resolve() == DPO_PATH.resolve():
@@ -215,6 +215,7 @@ def generate_with_adapter(adapter_path, prompts, max_new_tokens=256):
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer, model_name)
     if model_name == base:
         model = PeftModel.from_pretrained(model, str(adapter_path))
     FastLanguageModel.for_inference(model)

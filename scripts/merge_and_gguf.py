@@ -33,7 +33,7 @@ def main():
     tier = os.environ.get("COMPUTE_TIER", "T4").upper()
     base = (
         "unsloth/Llama-3.2-1B-Instruct-bnb-4bit" if tier == "T4"
-        else "unsloth/Qwen2.5-7B-bnb-4bit"
+        else "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     )
     max_len = 512 if tier == "T4" else 1024
 
@@ -43,6 +43,7 @@ def main():
     print(f"Tier: {tier}  base: {base}  quants: {quants}")
 
     from peft import PeftModel
+    from scripts.lab_utils import ensure_chat_template
     from unsloth import FastLanguageModel
     import gc
     import torch
@@ -53,6 +54,7 @@ def main():
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer, base)
 
     model = PeftModel.from_pretrained(model, args.sft_path)
     print("Loaded SFT-mini adapter")

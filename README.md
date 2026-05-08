@@ -12,7 +12,7 @@ Build SFT-mini checkpoint → train DPO adapter → compare SFT-only vs SFT+DPO 
 | Tier | Compute | Base model | SFT slice | DPO slice | Time | Khi nào dùng |
 |---|---|---|---|---|---|---|
 | **T4 (default)** | Free Colab T4 16 GB / laptop GPU ≥ 12 GB | `Llama-3.2-1B-Instruct-bnb-4bit` | 1k VN Alpaca | 2k UltraFeedback | ~50 min (incl. NB6 benchmark) | Hầu hết học viên — ưu tiên chạy nhanh, ít lỗi/OOM trên free Colab |
-| **BigGPU (full)** | Colab Pro A100/L4 / Kaggle T4×2 / cloud H100 | `Qwen2.5-7B-bnb-4bit` | 1k VN Alpaca | 5k UltraFeedback | ~60 min (incl. NB6 benchmark) | Đã có cloud GPU, muốn faithful với deck demo (3.2 → 4.1 helpfulness, A100 timing) |
+| **BigGPU (fast)** | Colab Pro A100/L4 / Kaggle T4×2 / cloud H100 | `Llama-3.2-1B-Instruct-bnb-4bit` | 1k VN Alpaca | 5k UltraFeedback | ~45 min (incl. NB6 benchmark) | Đã có cloud GPU, vẫn ưu tiên chạy nhanh và ít lỗi/OOM |
 
 > Cả hai tier dùng **cùng notebook source** — đổi giữa T4 và BigGPU bằng cách sửa `COMPUTE_TIER` trong `.env` (hoặc đổi badge launch URL bên dưới).
 

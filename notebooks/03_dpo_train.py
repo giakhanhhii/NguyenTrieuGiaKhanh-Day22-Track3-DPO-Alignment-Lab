@@ -31,6 +31,7 @@ if str(ROOT_FOR_IMPORT) not in sys.path:
 from scripts.lab_utils import (
     configure_attention_backend,
     choose_mixed_precision,
+    ensure_chat_template,
     env_flag,
     env_float,
     env_int,
@@ -50,7 +51,7 @@ if COMPUTE_TIER == "T4":
     PER_DEVICE_BATCH = 1
     GRAD_ACCUM = 8
 else:
-    BASE_MODEL = "unsloth/Qwen2.5-7B-bnb-4bit"
+    BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     MAX_LEN = 1024
     MAX_PROMPT_LEN = 512
     PER_DEVICE_BATCH = 1
@@ -109,6 +110,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
+ensure_chat_template(tokenizer, BASE_MODEL)
 
 # Load SFT adapter on top of base
 model = PeftModel.from_pretrained(model, str(SFT_PATH), is_trainable=True)

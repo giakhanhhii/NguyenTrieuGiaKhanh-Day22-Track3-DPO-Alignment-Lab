@@ -35,7 +35,7 @@ def main():
         max_len, max_prompt = 512, 256
         batch, grad_accum = 1, 8
     else:
-        base_model = "unsloth/Qwen2.5-7B-bnb-4bit"
+        base_model = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
         max_len, max_prompt = 1024, 512
         batch, grad_accum = 1, 4
 
@@ -47,7 +47,7 @@ def main():
     print(f"Beta / LR:  {args.beta} / {args.lr}")
     print(f"Output:     {output}")
 
-    from scripts.lab_utils import choose_mixed_precision, configure_attention_backend
+    from scripts.lab_utils import choose_mixed_precision, configure_attention_backend, ensure_chat_template
     import torch
     from datasets import Dataset
     from peft import PeftModel
@@ -69,6 +69,7 @@ def main():
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer, base_model)
 
     model = PeftModel.from_pretrained(model, args.sft_path, is_trainable=True)
     model = FastLanguageModel.get_peft_model(

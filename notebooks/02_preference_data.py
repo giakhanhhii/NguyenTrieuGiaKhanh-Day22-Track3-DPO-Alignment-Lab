@@ -31,7 +31,7 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env
+from scripts.lab_utils import ensure_chat_template, env_flag, env_int, get_repo_root, load_lab_env
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -71,6 +71,7 @@ assert ADAPTER_DIR.exists(), f"NB1 must run first — {ADAPTER_DIR} missing"
 tokenizer = AutoTokenizer.from_pretrained(ADAPTER_DIR)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
+ensure_chat_template(tokenizer, str(ADAPTER_DIR))
 print(f"Tokenizer: {tokenizer.__class__.__name__}  vocab={tokenizer.vocab_size:,}")
 
 # %% [markdown]

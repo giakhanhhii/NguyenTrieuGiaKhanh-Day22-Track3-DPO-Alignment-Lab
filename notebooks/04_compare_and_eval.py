@@ -27,7 +27,7 @@ ROOT_FOR_IMPORT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.
 if str(ROOT_FOR_IMPORT) not in sys.path:
     sys.path.insert(0, str(ROOT_FOR_IMPORT))
 
-from scripts.lab_utils import env_flag, env_int, get_repo_root, load_lab_env, render_text_card
+from scripts.lab_utils import ensure_chat_template, env_flag, env_int, get_repo_root, load_lab_env, render_text_card
 
 REPO_ROOT = get_repo_root()
 load_lab_env(REPO_ROOT)
@@ -38,7 +38,7 @@ if COMPUTE_TIER == "T4":
     BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     MAX_LEN = 512
 else:
-    BASE_MODEL = "unsloth/Qwen2.5-7B-bnb-4bit"
+    BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     MAX_LEN = 1024
 
 SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
@@ -94,6 +94,7 @@ def generate_with_adapter(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer, BASE_MODEL)
 
     if preload_adapter is not None:
         model = PeftModel.from_pretrained(model, str(preload_adapter))

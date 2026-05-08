@@ -35,7 +35,7 @@ case "$TIER" in
     echo "[colab] T4 (or similar 16 GB) tier — using Llama-3.2-1B"
     ;;
   BIGGPU)
-    echo "[colab] BigGPU (A100 / L4) tier — using Qwen2.5-7B"
+    echo "[colab] BigGPU (A100 / L4) tier — using fast Llama-3.2-1B with larger batch/length"
     ;;
 esac
 

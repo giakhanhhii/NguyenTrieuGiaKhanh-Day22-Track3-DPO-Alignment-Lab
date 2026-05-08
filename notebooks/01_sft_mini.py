@@ -32,6 +32,7 @@ if str(ROOT_FOR_IMPORT) not in sys.path:
 
 from scripts.lab_utils import (
     configure_attention_backend,
+    ensure_chat_template,
     env_flag,
     env_int,
     get_repo_root,
@@ -54,7 +55,7 @@ if COMPUTE_TIER == "T4":
     PER_DEVICE_BATCH = 1
     GRAD_ACCUM = 8
 else:  # BIGGPU
-    BASE_MODEL = "unsloth/Qwen2.5-7B-bnb-4bit"
+    BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     MAX_LEN = 1024
     PER_DEVICE_BATCH = 2
     GRAD_ACCUM = 4
@@ -117,10 +118,11 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     load_in_4bit=True,
 )
 
-# Critical for batch training — Qwen tokenizers ship without pad token.
+# Critical for batch training — some chat tokenizers ship without pad token.
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
     print("Set tokenizer.pad_token = eos_token")
+ensure_chat_template(tokenizer, BASE_MODEL)
 
 # %%
 model = FastLanguageModel.get_peft_model(
@@ -154,7 +156,7 @@ print(f"Loaded {len(ds)} rows. Columns: {ds.column_names}")
 print(f"\nFirst row:\n{ds[0]}")
 
 # %%
-# Alpaca → ChatML format (Qwen2.5's native template)
+# Alpaca -> model chat format
 def format_alpaca_to_chat(row):
     messages = []
     if row.get("instruction"):

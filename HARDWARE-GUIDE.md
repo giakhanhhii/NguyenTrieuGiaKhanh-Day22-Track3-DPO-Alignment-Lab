@@ -11,8 +11,8 @@ DPO = policy (trainable) + reference (frozen) + activations + KV cache + optimiz
 | Base model | Mode | Policy | Reference | Activations | Optim | Total VRAM | Where it fits |
 |---|---|---:|---:|---:|---:|---:|---|
 | Llama-3.2-1B | LoRA + 4bit | 0.8 GB | 0.8 GB | 1.5 GB | 0.8 GB | **~4 GB** | Any laptop GPU, free Colab T4 |
-| Qwen2.5-3B *(manual override)* | LoRA + 4bit | 2.0 GB | 2.0 GB | 4 GB | 1.5 GB | **~10 GB** | RTX 3060 12GB, free Colab T4 (16GB) ✓ |
-| Qwen2.5-7B | LoRA + 4bit | 4.5 GB | 4.5 GB | 6 GB | 3 GB | **~18 GB** | A100 40GB, L4 24GB, RTX 3090/4090 |
+| Larger model override | LoRA + 4bit | varies | varies | varies | varies | **10 GB+** | Only after the fast Llama path is submitted |
+| Llama-3.2-1B (BigGPU fast path) | LoRA + 4bit | 0.8 GB | 0.8 GB | 1.5 GB | 0.8 GB | **~4 GB** | A100/L4/H100 when prioritizing speed |
 | Qwen2.5-14B | LoRA + 4bit | 9 GB | 9 GB | 8 GB | 4 GB | **~30 GB** | A100 40GB ✓, H100 |
 
 > Activations + KV cache scale with `max_length × batch_size`. T4 tier uses `max_length=512, batch=1, grad_accum=8`. BigGPU uses `max_length=1024, batch=2, grad_accum=4`.
@@ -36,7 +36,7 @@ DPO = policy (trainable) + reference (frozen) + activations + KV cache + optimiz
 Do you have a usable NVIDIA GPU?
 ├─ No → Free Colab T4 (Runtime → Change runtime type → T4 GPU). Default.
 ├─ Yes, ≥ 24 GB VRAM (3090/4090/A100/L4)
-│   └─ COMPUTE_TIER=BIGGPU → Qwen2.5-7B faithful path, deck-aligned numbers
+│   └─ COMPUTE_TIER=BIGGPU → Llama-3.2-1B fast path, larger sequence/batch
 └─ Yes, 12-23 GB VRAM (3060/3070/4060/3080)
     └─ COMPUTE_TIER=T4 → Llama-3.2-1B, lowest-risk path on free Colab
 ```
