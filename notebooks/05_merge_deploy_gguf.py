@@ -58,85 +58,34 @@ import torch
 assert torch.cuda.is_available()
 
 # %% [markdown]
-# ## 1. Load DPO model + merge adapter
-
-# %%
-from unsloth import FastLanguageModel
-from peft import PeftModel
-
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name=BASE_MODEL,
-    max_seq_length=MAX_LEN,
-    dtype=None,
-    load_in_4bit=True,
-)
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
-ensure_chat_template(tokenizer, BASE_MODEL)
-
-# Stack SFT-mini → DPO adapters
-SFT_PATH = REPO_ROOT / "adapters" / "sft-mini"
-model = PeftModel.from_pretrained(model, str(SFT_PATH))
-print(f"Loaded SFT-mini adapter from {SFT_PATH}")
-model = PeftModel.from_pretrained(model, str(DPO_PATH))
-print(f"Loaded DPO adapter from {DPO_PATH}")
-
-# %% [markdown]
-# > **Note:** The DPO adapter trained in NB3 stacks on top of SFT. To get a fully
-# > aligned merged model, we apply both adapters before merging. Unsloth's
-# > `save_pretrained_merged` handles the SFT + DPO + base merge in one shot.
-
-# %% [markdown]
-# ## 2. Save merged FP16 weights
+# ## 1-3. Merge adapters and quantize to GGUF Q4_K_M
 #
-# `save_pretrained_merged(method="merged_16bit")` produces a HuggingFace-format
-# directory you can either upload to HF Hub directly OR feed into the GGUF
-# converter in step 3.
+# The training base is a bitsandbytes 4-bit model, but llama.cpp cannot convert
+# HF folders that still carry `quantization_config: bitsandbytes`. The helper
+# script below therefore uses a full/non-bnb base for GGUF export when available
+# (`GGUF_BASE_MODEL`, default: `unsloth/Llama-3.2-1B-Instruct`). If that base is
+# unavailable or gated, it writes a clear pending screenshot instead of crashing
+# the notebook.
 
 # %%
-# This re-loads the model with both SFT and DPO adapters merged into base weights.
-# Output is FP16 (or BF16 on Ampere+) HF-format weights ready for inference.
-model.save_pretrained_merged(
-    str(MERGED_PATH),
-    tokenizer,
-    save_method="merged_16bit",
-)
-print(f"Saved merged FP16 to {MERGED_PATH}")
+import subprocess
 
-# Free GPU memory before GGUF conversion (which spawns a subprocess that needs RAM)
-import gc
-
-del model
-gc.collect()
-torch.cuda.empty_cache()
-
-# %% [markdown]
-# ## 3. Quantize to GGUF Q4_K_M
-#
-# Q4_K_M is the sweet spot: ~4× compression vs FP16, minimal quality loss.
-# Unsloth wraps llama.cpp's `quantize` binary — first run downloads + compiles
-# llama.cpp (~3 min) then quantizes (~30 s).
-
-# %%
-# Reload the merged model — Unsloth's GGUF saver expects a live model handle.
-from unsloth import FastLanguageModel as FLM
-
-model, tokenizer = FLM.from_pretrained(
-    model_name=str(MERGED_PATH),
-    max_seq_length=MAX_LEN,
-    dtype=None,
-    load_in_4bit=False,    # already merged; load full precision
-)
-
-# %%
-# Save GGUF in 1 quantization tier (Q4_K_M). Add more tiers below if you want the
-# +3 "GGUF release published" rigor add-on.
-model.save_pretrained_gguf(
+cmd = [
+    sys.executable,
+    str(REPO_ROOT / "scripts" / "merge_and_gguf.py"),
+    "--sft-path",
+    str(REPO_ROOT / "adapters" / "sft-mini"),
+    "--dpo-path",
+    str(DPO_PATH),
+    "--merged-output",
+    str(REPO_ROOT / "adapters" / "merged-clean"),
+    "--gguf-output",
     str(GGUF_DIR),
-    tokenizer,
-    quantization_method="q4_k_m",
-)
-print(f"Saved GGUF Q4_K_M to {GGUF_DIR}")
+    "--quant",
+    "Q4_K_M",
+]
+print("Running:", " ".join(cmd))
+subprocess.run(cmd, check=True)
 
 # %% [markdown]
 # ### 3a. Optional — additional quantization tiers (for the +3 rigor add-on)
@@ -157,8 +106,6 @@ for p in sorted(GGUF_DIR.iterdir()):
         size_mb = p.stat().st_size / 1e6
         print(f"  {p.name:50s}  {size_mb:>8.1f} MB")
 
-del model
-gc.collect()
 torch.cuda.empty_cache()
 
 # %% [markdown]
@@ -169,50 +116,71 @@ from llama_cpp import Llama
 
 # Find the Q4_K_M GGUF
 gguf_files = list(GGUF_DIR.glob("*Q4_K_M*.gguf")) + list(GGUF_DIR.glob("*q4_k_m*.gguf"))
-assert gguf_files, "No Q4_K_M GGUF found — step 3 may have failed"
-gguf_path = gguf_files[0]
-print(f"Loading: {gguf_path.name}")
+if not gguf_files:
+    gguf_path = None
+    llm = None
+    print("No Q4_K_M GGUF found. A pending deploy artifact should already be in submission/screenshots/.")
+else:
+    gguf_path = gguf_files[0]
+    print(f"Loading: {gguf_path.name}")
 
-# n_gpu_layers=-1 offloads all layers to GPU if compiled with CUDA/Metal/Vulkan
-llm = Llama(
-    model_path=str(gguf_path),
-    n_ctx=MAX_LEN,
-    n_gpu_layers=-1,           # all layers on GPU; falls back to CPU if no GPU compile
-    verbose=False,
-)
-print("Loaded.")
+    # n_gpu_layers=-1 offloads all layers to GPU if compiled with CUDA/Metal/Vulkan
+    llm = Llama(
+        model_path=str(gguf_path),
+        n_ctx=MAX_LEN,
+        n_gpu_layers=-1,           # all layers on GPU; falls back to CPU if no GPU compile
+        verbose=False,
+    )
+    print("Loaded.")
 
 # %% [markdown]
 # ### 4a. Smoke prompt + response (deliverable: `06-gguf-smoke.png`)
 
 # %%
-SMOKE_PROMPT = "Giải thích ngắn gọn (3 câu) cách thuật toán Bubble sort hoạt động."
-
-response = llm.create_chat_completion(
-    messages=[{"role": "user", "content": SMOKE_PROMPT}],
-    max_tokens=200,
-    temperature=0.0,
-)
-
-print(f"PROMPT:\n  {SMOKE_PROMPT}\n")
-print(f"RESPONSE (Q4_K_M GGUF, llama-cpp-python):\n  {response['choices'][0]['message']['content']}")
-print(f"\nTokens used: {response['usage']}")
-
 screenshot_dir = REPO_ROOT / "submission" / "screenshots"
 screenshot_dir.mkdir(parents=True, exist_ok=True)
-render_text_card(
-    screenshot_dir / "06-gguf-smoke.png",
-    "GGUF smoke test",
-    [
-        f"GGUF file    : {gguf_path.name}",
-        f"Quantization : Q4_K_M",
-        f"Prompt       : {SMOKE_PROMPT}",
-        "",
-        "Response:",
-        response["choices"][0]["message"]["content"],
-    ],
-    height=5.3,
-)
+SMOKE_PROMPT = "Giải thích ngắn gọn (3 câu) cách thuật toán Bubble sort hoạt động."
+
+if llm is None:
+    response = None
+    render_text_card(
+        screenshot_dir / "06-gguf-smoke.png",
+        "GGUF smoke test - pending",
+        [
+            "Status : GGUF file not available",
+            "Reason : converter skipped or failed in step 1-3",
+            "",
+            "Completed before this deploy step:",
+            "- SFT adapter",
+            "- Preference data",
+            "- DPO adapter / reward analysis if available",
+        ],
+        height=5.0,
+    )
+else:
+    response = llm.create_chat_completion(
+        messages=[{"role": "user", "content": SMOKE_PROMPT}],
+        max_tokens=200,
+        temperature=0.0,
+    )
+
+    print(f"PROMPT:\n  {SMOKE_PROMPT}\n")
+    print(f"RESPONSE (Q4_K_M GGUF, llama-cpp-python):\n  {response['choices'][0]['message']['content']}")
+    print(f"\nTokens used: {response['usage']}")
+
+    render_text_card(
+        screenshot_dir / "06-gguf-smoke.png",
+        "GGUF smoke test",
+        [
+            f"GGUF file    : {gguf_path.name}",
+            f"Quantization : Q4_K_M",
+            f"Prompt       : {SMOKE_PROMPT}",
+            "",
+            "Response:",
+            response["choices"][0]["message"]["content"],
+        ],
+        height=5.3,
+    )
 print(f"Saved GGUF smoke screenshot to {screenshot_dir / '06-gguf-smoke.png'}")
 
 # %% [markdown]
@@ -254,11 +222,12 @@ deploy_meta = {
     "compute_tier": COMPUTE_TIER,
     "base_model": BASE_MODEL,
     "merged_path": str(MERGED_PATH),
-    "gguf_path": str(gguf_path),
-    "gguf_size_mb": round(gguf_path.stat().st_size / 1e6, 1),
+    "gguf_path": str(gguf_path) if gguf_path else None,
+    "gguf_size_mb": round(gguf_path.stat().st_size / 1e6, 1) if gguf_path else None,
     "quantization": "q4_k_m",
     "smoke_prompt": SMOKE_PROMPT,
-    "smoke_response": response["choices"][0]["message"]["content"],
+    "smoke_response": response["choices"][0]["message"]["content"] if response else None,
+    "status": "ok" if gguf_path else "pending",
 }
 (REPO_ROOT / "data" / "eval" / "deploy_meta.json").parent.mkdir(parents=True, exist_ok=True)
 (REPO_ROOT / "data" / "eval" / "deploy_meta.json").write_text(
