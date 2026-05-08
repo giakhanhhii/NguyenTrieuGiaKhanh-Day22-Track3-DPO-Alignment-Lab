@@ -42,7 +42,7 @@ LAB_MINIMAL = env_flag("LAB_MINIMAL", False)
 
 # Tier-specific hyperparameters
 if COMPUTE_TIER == "T4":
-    BASE_MODEL = "unsloth/Qwen2.5-3B-bnb-4bit"
+    BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct-bnb-4bit"
     MAX_LEN = 512
     PER_DEVICE_BATCH = 1
     GRAD_ACCUM = 8
@@ -52,7 +52,7 @@ else:  # BIGGPU
     PER_DEVICE_BATCH = 2
     GRAD_ACCUM = 4
 
-SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-alpaca-cleaned")
+SFT_DATASET = os.environ.get("SFT_DATASET", "bkai-foundation-models/vi-alpaca")
 SFT_SLICE = env_int("SFT_SLICE", 256 if LAB_MINIMAL else 1000)
 NUM_EPOCHS = 1
 
@@ -134,7 +134,7 @@ print(f"Trainable params: {sum(p.numel() for p in model.parameters() if p.requir
 # %% [markdown]
 # ## 2. Load + format VN Alpaca slice
 #
-# `5CD-AI/Vietnamese-alpaca-cleaned` is a 50k-row VN Alpaca translation. Lab 21
+# `bkai-foundation-models/vi-alpaca` is a public VN Alpaca-style dataset. Lab 21
 # uses 1k slice for the demo run; we match that exactly so reward gap is comparable.
 
 # %%
